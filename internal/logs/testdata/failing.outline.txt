@@ -1,0 +1,15 @@
+HeadDropped: false
+[step] Set up job start=0 end=2 sev=plain errors=0 warnings=0 notices=0 dur=1s
+  [line:plain] idx=1
+[step] Run actions/checkout@v4 start=3 end=5 sev=plain errors=0 warnings=0 notices=0 dur=2s
+  [line:plain] idx=4
+[step] Run go build ./... start=6 end=12 sev=error errors=1 warnings=1 notices=0 dur=3s
+  [line:command] idx=7
+  [line:warning] idx=8
+  [line:plain] idx=9
+  [line:plain] idx=10
+  [line:error] idx=11
+[step] Post Run actions/checkout@v4 start=13 end=15 sev=plain errors=0 warnings=0 notices=0 dur=0s
+  [line:plain] idx=14
+[step] Complete job start=16 end=18 sev=error errors=1 warnings=0 notices=0 dur=0s
+  [line:error] idx=17

@@ -1,0 +1,7 @@
+[1;38;2;121;192;255mLog · build · job #42[m                                                                          [38;2;139;148;158m⏼ off[m
+[38;2;139;148;158m7 lines · 290 B · mode:outline[m
+[1;38;2;31;111;235m▸ Set up job                                                                                      2s[m
+▾ [1;38;2;248;81;73m✗[m Run build                                                                          ✗ 1 error  3s
+  [38;2;139;148;158m5[m ##[command]go build ./...
+  [38;2;139;148;158m6[m [1;38;2;248;81;73m✗[m ##[error]build failed: something broke
+[38;2;139;148;158m↑/k scroll up  ·  ↓/j scroll down  ·  PgDn page down  ·  g/home top  ·  G/end bottom  ·  / search  …[m

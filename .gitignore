@@ -1,0 +1,39 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# gh-extension binary built at repo root by `make extension`.
+/gh-peek
+
+# GoReleaser build output.
+/dist/
+
+
+# Coverage
+coverage.txt
+coverage.out
+*.cover
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Go workspace
+go.work
+go.work.sum
+
+# Agent / AI instruction files
+AGENTS.md
+implementation-plan.md
+docs/architecture.md
+docs/code-map.md
+.github/copilot-instructions.md

@@ -1,0 +1,25 @@
+HeadDropped: false
+[step] Set up job start=0 end=11 sev=plain errors=0 warnings=0 notices=0 dur=3s
+  [line:plain] idx=1
+  [group] Operating System start=2 end=6 sev=plain errors=0 warnings=0 notices=0 dur=0s
+    [line:plain] idx=3
+    [line:plain] idx=4
+    [line:plain] idx=5
+  [group] Runner Image start=7 end=10 sev=plain errors=0 warnings=0 notices=0 dur=0s
+    [line:plain] idx=8
+    [line:plain] idx=9
+[step] Run actions/checkout@v4 start=12 end=18 sev=command errors=0 warnings=0 notices=0 dur=4s
+  [line:plain] idx=13
+  [line:plain] idx=14
+  [line:plain] idx=15
+  [line:command] idx=16
+  [line:plain] idx=17
+[step] Run go test ./... start=19 end=24 sev=notice errors=0 warnings=0 notices=1 dur=4s
+  [line:command] idx=20
+  [line:plain] idx=21
+  [line:plain] idx=22
+  [line:notice] idx=23
+[step] Post Run actions/checkout@v4 start=25 end=27 sev=plain errors=0 warnings=0 notices=0 dur=0s
+  [line:plain] idx=26
+[step] Complete job start=28 end=30 sev=plain errors=0 warnings=0 notices=0 dur=0s
+  [line:plain] idx=29

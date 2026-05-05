@@ -1,0 +1,19 @@
+2024-05-01T11:00:00Z ##[group]Set up job
+2024-05-01T11:00:00Z Current runner version: '2.317.0'
+2024-05-01T11:00:01Z ##[endgroup]
+2024-05-01T11:00:02Z ##[group]Run actions/checkout@v4
+2024-05-01T11:00:02Z Syncing repository: example-org/example-repo
+2024-05-01T11:00:04Z ##[endgroup]
+2024-05-01T11:00:05Z ##[group]Run go build ./...
+2024-05-01T11:00:05Z ##[command]/usr/local/go/bin/go build ./...
+2024-05-01T11:00:06Z ##[warning]deprecated: pkg/old is deprecated
+2024-05-01T11:00:07Z # example.com/app
+2024-05-01T11:00:07Z ./main.go:42:9: undefined: missingHelper
+2024-05-01T11:00:08Z ##[error]Process completed with exit code 2.
+2024-05-01T11:00:08Z ##[endgroup]
+2024-05-01T11:00:09Z ##[group]Post Run actions/checkout@v4
+2024-05-01T11:00:09Z Cleaning up orphan processes
+2024-05-01T11:00:09Z ##[endgroup]
+2024-05-01T11:00:10Z ##[group]Complete job
+2024-05-01T11:00:10Z ##[error]Process completed with exit code 1.
+2024-05-01T11:00:10Z ##[endgroup]

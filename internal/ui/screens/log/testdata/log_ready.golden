@@ -1,0 +1,14 @@
+[1;38;2;121;192;255mLog · build · job #42[m                                                                          [38;2;139;148;158m⏼ off[m
+[38;2;139;148;158m11 lines · 243 B · wrap:off[m
+[38;2;139;148;158m 1[m Setting up job
+[38;2;139;148;158m 2[m [32m✓ Checkout repo[0m
+[38;2;139;148;158m 3[m Run go build ./...
+[38;2;139;148;158m 4[m Building...
+[38;2;139;148;158m 5[m [31m##[error] build failed: unexpected token[0m
+[38;2;139;148;158m 6[m Process completed with exit code 1
+[38;2;139;148;158m 7[m post-error noise
+[38;2;139;148;158m 8[m post-error noise
+[38;2;139;148;158m 9[m post-error noise
+[38;2;139;148;158m10[m post-error noise
+[38;2;139;148;158m11[m post-error noise
+[38;2;139;148;158m↑/k scroll up  ·  ↓/j scroll down  ·  PgDn page down  ·  g/home top  ·  G/end bottom  ·  / search  …[m
