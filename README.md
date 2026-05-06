@@ -65,11 +65,23 @@ sudo install -m 755 /tmp/gh-peek /usr/local/bin/
 rm -f "/tmp/${ARCHIVE}" /tmp/gh-peek
 ```
 
-### From source
+### With Go
 
 ```sh
 go install github.com/sud0whoami/gh-peek/cmd/gh-peek@latest
 gh-peek
+```
+
+This downloads the module via the Go module proxy and compiles it
+locally; it does not check out a working tree.
+
+### From source
+
+```sh
+git clone https://github.com/sud0whoami/gh-peek.git
+cd gh-peek
+make build
+./bin/gh-peek
 ```
 
 ### Local `gh` extension build (development)
