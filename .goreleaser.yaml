@@ -32,6 +32,12 @@ archives:
     format_overrides:
       - goos: windows
         formats: [zip]
+  # Raw binaries with the naming convention `gh extension install` expects:
+  # `<extension>-<os>-<arch>[.exe]` (hyphens, no version, no archive).
+  - id: gh-extension
+    formats: [binary]
+    name_template: >-
+      {{ .ProjectName }}-{{ .Os }}-{{ .Arch }}
 
 checksum:
   name_template: "checksums.txt"
