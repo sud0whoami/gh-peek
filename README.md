@@ -2,7 +2,7 @@
 
 A terminal UI for browsing GitHub Actions runs, jobs, and logs from
 inside a local git repository. Built with Go and
-[Bubble Tea v2](https://charm.land/bubbletea/v2).
+[Bubble Tea v2](https://github.com/charmbracelet/bubbletea).
 
 Open it from a checkout and it picks the right starting view:
 
