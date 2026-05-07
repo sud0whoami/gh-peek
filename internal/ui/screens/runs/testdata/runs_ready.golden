@@ -1,7 +1,8 @@
-[1;38;2;121;192;255mAll runs · octo/demo[m                                                                        [38;2;139;148;158m✓ <TS>[m
-[38;2;139;148;158m(no filter)[m
-[38;2;139;148;158mWORKFLOW        TITLE                          BRANCH             EVENT    STATUS         UPDATED   [m
-[1;38;2;31;111;235mCI              Add feature                    main               push     [1;38;2;63;185;80m[ ✓ success ][m  <TS>    [m
-CI              Refactor module                main               push     [1;38;2;248;81;73m[ ✗ failure ][m  <TS>    
-CI              Wire bootstrap                 main               push     [1;38;2;88;166;255m[ ● running ][m  <TS>    
-[38;2;139;148;158m↑/k move up  ·  ↓/j move down  ·  enter open run  ·  / search  ·  r refresh  ·  R toggle auto-refre…[m
+[48;2;68;71;90m[1;38;2;189;147;249mAll runs · octo/demo[m                                                                        [38;2;98;114;164m✓ <TS>[m[m
+[38;2;98;114;164m(no filter)[m
+[1;38;2;189;147;249mWORKFLOW        TITLE                          BRANCH             EVENT    STATUS         UPDATED   [m
+[1;38;2;248;248;242;48;2;68;71;90mCI              Add feature                    main               push     [1;38;2;80;250;123m[ ✓ success ][m  <TS>    [m
+CI              Refactor module                main               push     [1;38;2;255;85;85m[ ✗ failure ][m  <TS>    
+CI              Wire bootstrap                 main               push     [1;38;2;139;233;253m[ ● running ][m  <TS>    
+[38;2;98;114;164m────────────────────────────────────────────────────────────────────────────────────────────────────[m
+[38;2;98;114;164m↑/k move up  ·  ↓/j move down  ·  enter open run  ·  / search  ·  r refresh  ·  R toggle auto-refre…[m

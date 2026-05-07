@@ -558,12 +558,12 @@ func (m *Model) bodyHeight() int {
 }
 
 // footerHeight returns the number of terminal lines the footer occupies.
-// When full help is shown, each help row group takes one line.
+// Includes 1 line for the divider that precedes the help text.
 func (m *Model) footerHeight() int {
 	if m.showHelp {
-		return len(m.keys.FullHelp())
+		return 1 + len(m.keys.FullHelp()) // 1 divider + N help rows
 	}
-	return 1
+	return 2 // 1 divider + 1 help line
 }
 
 // scrollBy moves the raw-mode viewport by delta lines.

@@ -44,21 +44,21 @@ func (m *Model) renderHeader() string {
 	if jobName == "" {
 		jobName = "job " + strconv.FormatInt(m.params.JobID, 10)
 	}
-	left := m.theme.Header(fmt.Sprintf("Log · %s · job #%d", jobName, m.params.JobID))
-	return m.layoutLR(left, m.renderStatusIndicator())
+	title := fmt.Sprintf("Log · %s · job #%d", jobName, m.params.JobID)
+	return m.theme.HeaderBar(title, m.statusIndicatorText(), m.width)
 }
 
-func (m *Model) renderStatusIndicator() string {
+func (m *Model) statusIndicatorText() string {
 	switch {
 	case m.state == stateLoading:
-		return m.theme.Muted("↻")
+		return "↻"
 	case !m.autoRefresh:
-		return m.theme.Muted("⏼ off")
+		return "⏼ off"
 	case !m.lastRefreshed.IsZero():
 		d := m.params.Now().Sub(m.lastRefreshed)
-		return m.theme.Muted("✓ " + humanizeAgo(d))
+		return "✓ " + humanizeAgo(d)
 	default:
-		return m.theme.Muted("✓")
+		return "✓"
 	}
 }
 
@@ -335,6 +335,7 @@ func (m *Model) renderOutlineLine(r row, gutter int, bufLines []string, highligh
 }
 
 func (m *Model) renderFooter() string {
+	div := m.theme.Divider(m.width)
 	if m.showHelp {
 		rows := m.keys.FullHelp()
 		lines := make([]string, 0, len(rows))
@@ -346,9 +347,9 @@ func (m *Model) renderFooter() string {
 			}
 			lines = append(lines, m.theme.Help(m.truncate(strings.Join(parts, "  ·  "))))
 		}
-		return strings.Join(lines, "\n")
+		return div + "\n" + strings.Join(lines, "\n")
 	}
-	return m.theme.Help(m.truncate(shortHelpText(m)))
+	return div + "\n" + m.theme.Help(m.truncate(shortHelpText(m)))
 }
 
 func shortHelpText(m *Model) string {
@@ -372,24 +373,6 @@ func (m *Model) truncate(s string) string {
 	return truncRune(s, m.width)
 }
 
-// layoutLR places left and right on the same line padded to width.
-func (m *Model) layoutLR(left, right string) string {
-	w := m.width
-	lw := lipgloss.Width(left)
-	rw := lipgloss.Width(right)
-	if lw+rw+1 > w {
-		if lw > w {
-			return truncRune(left, w)
-		}
-		return left
-	}
-	gap := w - lw - rw
-	if gap < 1 {
-		gap = 1
-	}
-	return left + strings.Repeat(" ", gap) + right
-}
-
 // ---------------------------------------------------------------------------
 // Outline rendering helpers
 // ---------------------------------------------------------------------------
@@ -405,14 +388,14 @@ func stripLogTimestamp(line string) string {
 
 // outlineSevBadge returns a colored single-char badge for the severity level,
 // or "" for SevPlain/SevDebug/SevCommand.
-func outlineSevBadge(sev logs.Severity, _ interface{ Muted(string) string }) string {
+func outlineSevBadge(sev logs.Severity, theme styles.Theme) string {
 	switch sev {
 	case logs.SevError:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#f85149")).Bold(true).Render("✗")
+		return lipgloss.NewStyle().Foreground(theme.Failure).Bold(true).Render("✗")
 	case logs.SevWarning:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#d29922")).Bold(true).Render("⚠")
+		return lipgloss.NewStyle().Foreground(theme.Pending).Bold(true).Render("⚠")
 	case logs.SevNotice:
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#58a6ff")).Render("ℹ")
+		return lipgloss.NewStyle().Foreground(theme.Running).Render("ℹ")
 	}
 	return ""
 }
@@ -479,16 +462,15 @@ func (m *Model) apiStepByTitle(title string) (domain.WorkflowStep, bool) {
 	return domain.WorkflowStep{}, false
 }
 
-// apiConclusionBadge returns a colored single-char badge for an API step
-// conclusion. Returns "" when no badge is appropriate.
+// apiConclusionBadge returns a colored single-char badge for an API step conclusion.
 func apiConclusionBadge(conclusion string, theme styles.Theme) string {
 	switch conclusion {
 	case "success":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#3fb950")).Render("✓")
+		return lipgloss.NewStyle().Foreground(theme.Success).Render("✓")
 	case "skipped", "cancelled":
 		return theme.Muted("⊘")
 	case "failure", "timed_out":
-		return lipgloss.NewStyle().Foreground(lipgloss.Color("#f85149")).Bold(true).Render("✗")
+		return lipgloss.NewStyle().Foreground(theme.Failure).Bold(true).Render("✗")
 	}
 	return ""
 }

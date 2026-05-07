@@ -37,21 +37,21 @@ func (m *Model) renderHeader() string {
 	if title == "" {
 		title = m.run.Name
 	}
-	left := m.theme.Header(fmt.Sprintf("Run #%d · %s", m.params.RunID, title))
-	return m.layoutLR(left, m.renderStatusIndicator())
+	headerTitle := fmt.Sprintf("Run #%d · %s", m.params.RunID, title)
+	return m.theme.HeaderBar(headerTitle, m.statusIndicatorText(), m.width)
 }
 
-func (m *Model) renderStatusIndicator() string {
+func (m *Model) statusIndicatorText() string {
 	switch {
 	case m.state == stateLoading:
-		return m.theme.Muted("↻")
+		return "↻"
 	case !m.autoRefresh:
-		return m.theme.Muted("⏼ off")
+		return "⏼ off"
 	case !m.lastRefreshed.IsZero():
 		d := m.params.Now().Sub(m.lastRefreshed)
-		return m.theme.Muted("✓ " + humanizeAgo(d))
+		return "✓ " + humanizeAgo(d)
 	default:
-		return m.theme.Muted("✓")
+		return "✓"
 	}
 }
 
@@ -103,20 +103,23 @@ func (m *Model) renderBody() string {
 }
 
 func (m *Model) renderTwoPane() string {
-	jobsW := m.width * 4 / 10
-	if jobsW < 30 {
-		jobsW = 30
+	// Divide width between two bordered panes (each border adds 2 chars).
+	jobsOuter := m.width * 4 / 10
+	if jobsOuter < 32 {
+		jobsOuter = 32
 	}
-	if jobsW > m.width-20 {
-		jobsW = m.width - 20
+	if jobsOuter > m.width-22 {
+		jobsOuter = m.width - 22
 	}
-	stepsW := m.width - jobsW - 1
-	if stepsW < 10 {
-		stepsW = 10
-	}
-	jobsPane := m.renderJobsPane(jobsW, len(m.jobs))
-	stepsPane := m.renderStepsPane(stepsW)
-	return lipgloss.JoinHorizontal(lipgloss.Top, jobsPane, " ", stepsPane)
+	stepsOuter := m.width - jobsOuter
+	jobsInner := jobsOuter - 2
+	stepsInner := stepsOuter - 2
+
+	jobsContent := m.buildJobsContent(jobsInner, len(m.jobs))
+	stepsContent := m.buildStepsContent(stepsInner)
+	jobsPane := m.theme.PaneBox(jobsContent, jobsInner)
+	stepsPane := m.theme.PaneBox(stepsContent, stepsInner)
+	return lipgloss.JoinHorizontal(lipgloss.Top, jobsPane, stepsPane)
 }
 
 func (m *Model) renderStacked() string {
@@ -124,13 +127,15 @@ func (m *Model) renderStacked() string {
 	if rows > 8 {
 		rows = 8
 	}
-	jobs := m.renderJobsPane(m.width, rows)
-	divider := m.theme.Muted(strings.Repeat("─", m.width))
-	steps := m.renderStepsPane(m.width)
-	return lipgloss.JoinVertical(lipgloss.Left, jobs, divider, steps)
+	innerWidth := m.width - 2
+	jobsContent := m.buildJobsContent(innerWidth, rows)
+	stepsContent := m.buildStepsContent(innerWidth)
+	jobsPane := m.theme.PaneBox(jobsContent, innerWidth)
+	stepsPane := m.theme.PaneBox(stepsContent, innerWidth)
+	return lipgloss.JoinVertical(lipgloss.Left, jobsPane, stepsPane)
 }
 
-func (m *Model) renderJobsPane(width, max int) string {
+func (m *Model) buildJobsContent(width, max int) string {
 	if max <= 0 || len(m.jobs) == 0 {
 		return padRight(m.theme.Muted("No jobs."), width)
 	}
@@ -138,7 +143,7 @@ func (m *Model) renderJobsPane(width, max int) string {
 		max = len(m.jobs)
 	}
 	var b strings.Builder
-	b.WriteString(padRight(m.theme.Muted(truncRune("JOBS", width)), width))
+	b.WriteString(padRight(m.theme.SectionLabel(truncRune("JOBS", width)), width))
 	b.WriteByte('\n')
 	for i := 0; i < max; i++ {
 		j := m.jobs[i]
@@ -149,13 +154,10 @@ func (m *Model) renderJobsPane(width, max int) string {
 			prefix = "▶ "
 		}
 		row := prefix + m.theme.Badge(s) + " " + j.Name + "  " + dur
-		row = padRight(truncRune(row, width), width)
 		if i == m.jobCursor {
-			if m.focus == focusJobs {
-				row = m.theme.Selected(row)
-			} else {
-				row = m.theme.Muted(row)
-			}
+			row = m.theme.SelectedRow(row, width)
+		} else {
+			row = padRight(truncRune(row, width), width)
 		}
 		b.WriteString(row)
 		if i < max-1 {
@@ -165,14 +167,14 @@ func (m *Model) renderJobsPane(width, max int) string {
 	return b.String()
 }
 
-func (m *Model) renderStepsPane(width int) string {
+func (m *Model) buildStepsContent(width int) string {
 	steps := m.currentSteps()
 	var b strings.Builder
 	header := "STEPS"
 	if m.jobCursor >= 0 && m.jobCursor < len(m.jobs) {
 		header = "STEPS · " + m.jobs[m.jobCursor].Name
 	}
-	b.WriteString(padRight(m.theme.Muted(truncRune(header, width)), width))
+	b.WriteString(padRight(m.theme.SectionLabel(truncRune(header, width)), width))
 	b.WriteByte('\n')
 	if len(steps) == 0 {
 		b.WriteString(padRight(m.theme.Muted(truncRune("(no steps)", width)), width))
@@ -186,13 +188,10 @@ func (m *Model) renderStepsPane(width int) string {
 			prefix = "▶ "
 		}
 		row := prefix + strconv.Itoa(s.Number) + ". " + m.theme.Badge(sem) + " " + s.Name + "  " + dur
-		row = padRight(truncRune(row, width), width)
 		if i == m.stepCursor {
-			if m.focus == focusSteps {
-				row = m.theme.Selected(row)
-			} else {
-				row = m.theme.Muted(row)
-			}
+			row = m.theme.SelectedRow(row, width)
+		} else {
+			row = padRight(truncRune(row, width), width)
 		}
 		b.WriteString(row)
 		if i < len(steps)-1 {
@@ -203,10 +202,11 @@ func (m *Model) renderStepsPane(width int) string {
 }
 
 func (m *Model) renderFooter() string {
+	div := m.theme.Divider(m.width)
 	if m.showHelp {
-		return m.theme.Help(m.truncate(fullHelpText(m)))
+		return div + "\n" + m.theme.Help(m.truncate(fullHelpText(m)))
 	}
-	return m.theme.Help(m.truncate(shortHelpText(m)))
+	return div + "\n" + m.theme.Help(m.truncate(shortHelpText(m)))
 }
 
 func shortHelpText(m *Model) string {
@@ -242,24 +242,6 @@ func (m *Model) truncate(s string) string {
 		return s
 	}
 	return truncRune(s, m.width)
-}
-
-// layoutLR places left and right on the same line padded to width.
-func (m *Model) layoutLR(left, right string) string {
-	w := m.width
-	lw := lipgloss.Width(left)
-	rw := lipgloss.Width(right)
-	if lw+rw+1 > w {
-		if lw > w {
-			return truncRune(left, w)
-		}
-		return left
-	}
-	gap := w - lw - rw
-	if gap < 1 {
-		gap = 1
-	}
-	return left + strings.Repeat(" ", gap) + right
 }
 
 // errorHint maps known sentinels to user-facing hints.

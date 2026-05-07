@@ -51,24 +51,22 @@ func (m *Model) renderHeader() string {
 	default:
 		title = "All runs · " + repo.Owner + "/" + repo.Name
 	}
-	left := m.theme.Header(title)
-	right := m.renderStatusIndicator()
-	return m.layoutLR(left, right)
+	return m.theme.HeaderBar(title, m.statusIndicatorText(), m.width)
 }
 
-func (m *Model) renderStatusIndicator() string {
+func (m *Model) statusIndicatorText() string {
 	switch {
 	case m.loading:
-		return m.theme.Muted("↻")
+		return "↻"
 	case m.input.Focused():
-		return m.theme.Muted("⏸")
+		return "⏸"
 	case !m.autoRefresh:
-		return m.theme.Muted("⏼ off")
+		return "⏼ off"
 	case !m.lastRefreshed.IsZero():
 		d := m.params.Now().Sub(m.lastRefreshed)
-		return m.theme.Muted("✓ " + humanizeAgo(d))
+		return "✓ " + humanizeAgo(d)
 	default:
-		return m.theme.Muted("✓")
+		return "✓"
 	}
 }
 
@@ -155,7 +153,7 @@ func (m *Model) renderTable(rows []domain.WorkflowRun) string {
 		padRight(truncRune("STATUS", status), status),
 		padRight(truncRune("UPDATED", updated), updated),
 	)
-	b.WriteString(m.theme.Muted(m.truncate(header)))
+	b.WriteString(m.theme.SectionLabel(m.truncate(header)))
 	b.WriteByte('\n')
 
 	for i, r := range rows {
@@ -171,7 +169,7 @@ func (m *Model) renderTable(rows []domain.WorkflowRun) string {
 			padRight(truncRune(updatedCell, updated), updated),
 		)
 		if i == m.cursor {
-			row = m.theme.Selected(row)
+			row = m.theme.SelectedRow(row, m.width)
 		}
 		b.WriteString(row)
 		if i < len(rows)-1 {
@@ -182,10 +180,11 @@ func (m *Model) renderTable(rows []domain.WorkflowRun) string {
 }
 
 func (m *Model) renderFooter() string {
+	div := m.theme.Divider(m.width)
 	if m.showHelp {
-		return m.theme.Help(m.truncate(fullHelpText(m)))
+		return div + "\n" + m.theme.Help(m.truncate(fullHelpText(m)))
 	}
-	return m.theme.Help(m.truncate(shortHelpText(m)))
+	return div + "\n" + m.theme.Help(m.truncate(shortHelpText(m)))
 }
 
 func shortHelpText(m *Model) string {
@@ -222,26 +221,6 @@ func (m *Model) truncate(s string) string {
 		return s
 	}
 	return truncRune(s, m.width)
-}
-
-// layoutLR places left and right on the same line, padded to width.
-// Both sides are truncated if combined width > available.
-func (m *Model) layoutLR(left, right string) string {
-	w := m.width
-	lw := lipgloss.Width(left)
-	rw := lipgloss.Width(right)
-	if lw+rw+1 > w {
-		// Drop the right side to keep the header from wrapping.
-		if lw > w {
-			return truncRune(left, w)
-		}
-		return left
-	}
-	gap := w - lw - rw
-	if gap < 1 {
-		gap = 1
-	}
-	return left + strings.Repeat(" ", gap) + right
 }
 
 // errorHint maps known sentinels to user-facing hints.
