@@ -31,7 +31,7 @@ Open it from a checkout and it picks the right starting view:
 ### As a `gh` extension
 
 ```sh
-gh extension install sud0whoami/gh-peek --pin v0.0.2
+gh extension install sud0whoami/gh-peek
 gh peek
 ```
 
