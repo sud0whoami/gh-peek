@@ -98,11 +98,6 @@ func (t Theme) Badge(s domain.SemanticStatus) string {
 	return lipgloss.NewStyle().Foreground(t.colorFor(s)).Bold(true).Render(text)
 }
 
-// Header renders a top-of-screen header line.
-func (t Theme) Header(text string) string {
-	return lipgloss.NewStyle().Foreground(t.Accent).Bold(true).Render(text)
-}
-
 // Muted renders text in the muted color.
 func (t Theme) Muted(text string) string {
 	return lipgloss.NewStyle().Foreground(t.MutedColor).Render(text)

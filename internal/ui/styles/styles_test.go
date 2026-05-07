@@ -45,7 +45,6 @@ func TestTheme_HelperHelpers(t *testing.T) {
 	th := styles.DefaultTheme()
 
 	for name, fn := range map[string]func(string) string{
-		"Header":      th.Header,
 		"Muted":       th.Muted,
 		"Help":        th.Help,
 		"ErrorBanner": th.ErrorBanner,

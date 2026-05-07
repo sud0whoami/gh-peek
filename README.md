@@ -112,12 +112,13 @@ The full key map lives in
 - Runs list: `↑/↓` move · `enter` open · `/` search · `a` active-only ·
   `b` cycle view · `r` refresh · `R` toggle auto-refresh · `o` browser ·
   `?` help · `q` quit
-- Run detail: `tab` switch pane · `enter` open job log · `o` browser ·
-  `r` refresh · `R` toggle auto-refresh · `b`/`esc` back · `q` quit
-- Log viewer: `j`/`k`/`↑`/`↓` scroll · `PgUp`/`PgDn` page · `g`/`G`
-  top/bottom · `/` search · `n`/`N` next/prev match · `w` wrap toggle ·
-  `F` jump to first failure · `r` refresh · `R` toggle auto-refresh ·
-  `o` browser · `b`/`esc` back · `q` quit
+- Run detail: `↑/↓`/`j`/`k` move · `tab` switch pane · `enter` open job log · `o` browser ·
+  `r` refresh · `R` toggle auto-refresh · `?` help · `esc`/`b` back · `q` quit
+- Log viewer: `↑/↓`/`j`/`k` cursor · `PgUp`/`PgDn` page · `g`/`G` top/bottom ·
+  `enter`/`space` toggle node · `→`/`l` expand · `←`/`h` collapse · `E` expand all ·
+  `O` collapse all · `t` timestamps · `v` cycle mode (outline/compact/raw) ·
+  `/` search · `n`/`N` next/prev · `w` wrap · `F` first failure ·
+  `r` refresh · `R` toggle auto-refresh · `o` browser · `?` help · `esc`/`b` back · `q` quit
 
 ## Configuration
 
