@@ -619,7 +619,7 @@ func TestGoldenLogReady(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Milestone 8: outline mode tests
+// Outline mode tests
 // ---------------------------------------------------------------------------
 
 // outlineLog returns a GHA-style job log with groups and an error.
@@ -771,7 +771,7 @@ func TestLog_TimestampToggle(t *testing.T) {
 }
 
 // TestLog_RawModeMatchesPreviousRenderer verifies that ViewModeRaw produces
-// the same golden output as the pre-M8 flat renderer.
+// the same golden output as the outline-mode flat renderer.
 //
 //	UPDATE_GOLDEN=1 go test ./internal/ui/screens/log/... -run TestLog_RawModeMatchesPreviousRenderer -count=1
 func TestLog_RawModeMatchesPreviousRenderer(t *testing.T) {
@@ -978,7 +978,7 @@ func TestGoldenLogOutline(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Milestone 9 tests — step status mapping and API-derived step data
+// Step status mapping and API-derived step data
 // ---------------------------------------------------------------------------
 
 // makeAPIStep creates a WorkflowStep with start/completed times suitable for
@@ -1118,7 +1118,7 @@ func TestLog_APIStepDuration_UsedWhenNoTimestamps(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Milestone 9.4 — wrap behavior in outline/compact modes
+// Wrap behavior in outline/compact modes
 // ---------------------------------------------------------------------------
 
 // TestLog_WrapInOutlineMode verifies that w toggles wrap in outline mode and
@@ -1227,7 +1227,7 @@ func TestLog_WrapHeaderTruncatesTitle(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Milestone 9.5 — help screen at 80 columns
+// Help screen at 80 columns
 // ---------------------------------------------------------------------------
 
 // TestLog_HelpToggle verifies that ? toggles the full help overlay.

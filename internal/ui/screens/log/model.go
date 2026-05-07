@@ -12,7 +12,7 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/ui/styles"
 )
 
-// state enumerates high-level view modes.
+// state is the screen's loading/data state.
 type state int
 
 const (
@@ -21,7 +21,7 @@ const (
 	stateError
 )
 
-// Params bundles the dependencies required to construct a Model.
+// Params holds the configuration for New.
 type Params struct {
 	Repo          domain.RepoRef
 	RunID         int64
@@ -33,19 +33,13 @@ type Params struct {
 	AutoRefresh   bool
 	TickInterval  time.Duration
 
-	// RunActive determines whether auto-refresh ticks should fire.
-	// The log screen does not query the run/job status itself for M5;
-	// the parent tells it whether the job is still active when
-	// constructing.
+	// RunActive tells the screen whether to keep auto-refreshing.
 	RunActive bool
 
-	// ViewMode sets the starting view mode. Zero value (ViewModeOutline) is
-	// the default.
+	// ViewMode sets the initial view mode (default: ViewModeOutline).
 	ViewMode ViewMode
 
-	// Steps is the ordered list of steps from the GitHub API for this job.
-	// Used to show API-derived status badges and duration when log timestamps
-	// are absent.
+	// Steps from the GitHub API, used to enrich outline headers with status badges and duration.
 	Steps []domain.WorkflowStep
 }
 
@@ -60,12 +54,10 @@ type Model struct {
 	state state
 	buf   *logs.Buffer
 
-	// outline holds the structural projection of the log buffer (rebuilt on
-	// each successful load). nil until the first load completes.
+	// outline is rebuilt from buf on each successful load; nil until then.
 	outline *logs.Outline
 
-	// expanded maps stable node-path keys to true when the node is expanded.
-	// Only populated in outline / compact view modes.
+	// expanded maps stable node-path keys to true (outline/compact only).
 	expanded map[string]bool
 
 	// visibleRows is the flattened visible-row slice for outline/compact.
@@ -75,11 +67,9 @@ type Model struct {
 	// cursor is the focused row index into visibleRows (outline/compact only).
 	cursor int
 
-	// viewMode is the current rendering mode.
 	viewMode ViewMode
 
-	// showTimestamps controls whether leading ISO-8601 timestamps are shown
-	// on log lines in outline/compact mode.
+	// showTimestamps toggles the leading timestamp display in outline/compact.
 	showTimestamps bool
 
 	top  int // top-of-viewport index: into buf.Lines() (raw) or visibleRows (outline/compact)
@@ -98,7 +88,6 @@ type Model struct {
 	showHelp         bool
 }
 
-// New constructs a Model from the given Params.
 func New(p Params) *Model {
 	if p.Now == nil {
 		p.Now = time.Now

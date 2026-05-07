@@ -114,7 +114,7 @@ func (m *Model) renderBody() string {
 	return m.renderBodyRaw()
 }
 
-// renderBodyRaw is the original flat renderer (M5), used in ViewModeRaw.
+// renderBodyRaw is the flat renderer used in ViewModeRaw.
 func (m *Model) renderBodyRaw() string {
 	lines := m.buf.Lines()
 	if len(lines) == 0 {

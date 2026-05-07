@@ -15,7 +15,7 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/ui/screens/runs"
 )
 
-// activeScreen is the routing enum for the root Model.
+// activeScreen identifies which child screen is currently visible.
 type activeScreen int
 
 const (
@@ -25,7 +25,7 @@ const (
 	activeLogViewer
 )
 
-// RootParams bundles dependencies needed to construct a routed root Model.
+// RootParams holds dependencies for NewRouter.
 type RootParams struct {
 	Startup     domain.StartupContext
 	Client      githubapi.ActionsClient
@@ -33,19 +33,14 @@ type RootParams struct {
 	Width       int
 	Height      int
 	AutoRefresh bool
-	// TickInterval overrides the auto-refresh cadence used by child screens.
-	// Zero means "use each screen's default".
+	// TickInterval overrides the 7s auto-refresh cadence in child screens.
 	TickInterval time.Duration
-	// BrowserOpener handles OpenInBrowserMsg from any screen.
-	// Zero value means browser.OSOpener{}.
+	// BrowserOpener opens URLs. Defaults to browser.OSOpener{}.
 	BrowserOpener browser.Opener
 }
 
 // Model is the root Bubble Tea model for gh-peek.
-//
-// Constructed via New() it preserves the Milestone 0 placeholder
-// behavior. Constructed via NewRouter() it owns the runs-list and
-// run-detail screens and routes navigation messages between them.
+// New() returns a minimal placeholder; NewRouter() wires up the full screen stack.
 type Model struct {
 	params        *RootParams
 	width, height int
@@ -56,13 +51,12 @@ type Model struct {
 	browserOpener browser.Opener
 }
 
-// New constructs a placeholder root Model (legacy M0 behavior).
+// New returns a minimal placeholder model used in tests.
 func New() *Model {
 	return &Model{}
 }
 
-// NewRouter constructs a root Model that starts on the runs-list screen
-// and routes navigation messages to/from the run-detail screen.
+// NewRouter returns a Model wired to the runs-list screen.
 func NewRouter(p RootParams) *Model {
 	if p.Now == nil {
 		p.Now = time.Now
@@ -184,8 +178,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m.delegate(msg)
 }
 
-// delegate forwards a message to the currently active child screen and
-// reassigns the screen pointer defensively from the returned tea.Model.
+// delegate sends msg to the active child screen.
 func (m *Model) delegate(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.active {
 	case activeRuns:
@@ -217,8 +210,7 @@ func (m *Model) delegate(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // openBrowserCmd returns a tea.Cmd that opens the URL in the user's
-// browser. Failures are logged via slog and not surfaced in the UI
-// (M6 decision).
+// browser. Failures are logged via slog and not surfaced in the UI.
 func (m *Model) openBrowserCmd(url string) tea.Cmd {
 	opener := m.browserOpener
 	if opener == nil {

@@ -1,13 +1,4 @@
 // Package run implements the run-detail screen.
-//
-// Scope (Milestone 4):
-//   - Initial parallel fetch of GetRun + ListJobs.
-//   - States: loading | ready | error. Refresh failures keep prior data.
-//   - Two-pane (jobs/steps) when width >= 100, stacked otherwise.
-//   - Auto-refresh tick (default 7s, injectable) only fires while the
-//     run is still active (Pending/Running) and auto-refresh is on.
-//   - Emits OpenJobLogMsg / OpenInBrowserMsg / BackMsg for the parent
-//     to route. The screen does not navigate itself.
 package run
 
 import (
@@ -19,7 +10,7 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/ui/styles"
 )
 
-// state enumerates high-level view modes.
+// state is the screen's loading/data state.
 type state int
 
 const (
@@ -28,7 +19,7 @@ const (
 	stateError
 )
 
-// focusKind tracks which pane has the active selection cursor.
+// focusKind identifies the focused pane.
 type focusKind int
 
 const (
@@ -36,7 +27,7 @@ const (
 	focusSteps
 )
 
-// Params bundles the dependencies required to construct a Model.
+// Params holds the configuration for New.
 type Params struct {
 	Repo         domain.RepoRef
 	RunID        int64
@@ -75,7 +66,6 @@ type Model struct {
 	showHelp      bool
 }
 
-// New constructs a Model from the given Params.
 func New(p Params) *Model {
 	if p.Now == nil {
 		p.Now = time.Now
@@ -103,7 +93,6 @@ func New(p Params) *Model {
 	}
 }
 
-// tickMsg is the internal auto-refresh tick.
 type tickMsg struct{}
 
 // runLoadedMsg carries the GetRun result.
@@ -118,7 +107,7 @@ type jobsLoadedMsg struct {
 	Err  error
 }
 
-// OpenJobLogMsg requests that the parent open the job log viewer.
+// OpenJobLogMsg asks the parent to open the job log viewer.
 type OpenJobLogMsg struct {
 	Repo      domain.RepoRef
 	RunID     int64
@@ -128,10 +117,10 @@ type OpenJobLogMsg struct {
 	Steps     []domain.WorkflowStep
 }
 
-// OpenInBrowserMsg requests that the parent open the given URL.
+// OpenInBrowserMsg asks the parent to open a URL in the browser.
 type OpenInBrowserMsg struct {
 	URL string
 }
 
-// BackMsg requests that the parent return to the previous screen.
+// BackMsg asks the parent to go back.
 type BackMsg struct{}

@@ -1,16 +1,4 @@
 // Package runs implements the workflow run list screen.
-//
-// Scope (Milestone 3):
-//   - Initial fetch driven by StartupContext (All / Branch / PR).
-//   - Client-side active-only and substring search filters.
-//   - 7-second auto-refresh tick with ETag-based conditional GETs.
-//   - Sentinel-error rendering (auth, not-found, rate-limited).
-//   - Emits OpenRunMsg / OpenInBrowserMsg for the parent to route.
-//
-// Deferred:
-//   - The `b` (cycle branch / PR / all) keybinding is intentionally
-//     not wired in M3; it will return in a later milestone once the
-//     parent owns view-state cycling.
 package runs
 
 import (
@@ -24,10 +12,9 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/ui/styles"
 )
 
-// State enumerates the high-level view modes of the runs screen.
+// State is the screen's loading/data state.
 type State int
 
-// State values.
 const (
 	StateLoading State = iota
 	StateReady
@@ -35,9 +22,7 @@ const (
 	StateError
 )
 
-// viewMode tracks which slice of runs the screen is currently
-// requesting from the API. It is bound by `b` cycling through the
-// applicable modes given the StartupContext.
+// viewMode controls which subset of runs is shown; cycled by 'b'.
 type viewMode int
 
 const (
@@ -59,7 +44,7 @@ func (v viewMode) String() string {
 	}
 }
 
-// Params bundles the dependencies required to construct a Model.
+// Params holds the configuration for New.
 type Params struct {
 	Startup     domain.StartupContext
 	Client      githubapi.ActionsClient
@@ -67,8 +52,7 @@ type Params struct {
 	Width       int
 	Height      int
 	AutoRefresh bool
-	// TickInterval overrides the auto-refresh polling cadence.
-	// Zero means "use the default" (7s).
+	// TickInterval overrides the default 7s polling cadence. Zero means default.
 	TickInterval time.Duration
 }
 
@@ -96,7 +80,7 @@ type Model struct {
 	viewMode      viewMode
 }
 
-// New constructs a Model from the given Params.
+// New returns a Model ready to fetch runs.
 func New(p Params) *Model {
 	if p.Now == nil {
 		p.Now = time.Now
@@ -130,7 +114,6 @@ func New(p Params) *Model {
 	}
 }
 
-// initialViewMode picks the starting view mode from the StartupContext.
 func initialViewMode(sc domain.StartupContext) viewMode {
 	switch sc.Kind {
 	case domain.StartContextPR:
@@ -142,22 +125,21 @@ func initialViewMode(sc domain.StartupContext) viewMode {
 	}
 }
 
-// tickMsg is the internal auto-refresh tick.
 type tickMsg struct{}
 
-// runsLoadedMsg is dispatched when a fetch completes (success or error).
+// runsLoadedMsg carries a fetch result.
 type runsLoadedMsg struct {
 	Result githubapi.ListRunsResult
 	Err    error
 }
 
-// OpenRunMsg requests that the parent open the run-detail screen.
+// OpenRunMsg asks the parent to open run detail.
 type OpenRunMsg struct {
 	RunID int64
 	Repo  domain.RepoRef
 }
 
-// OpenInBrowserMsg requests that the parent open the given URL.
+// OpenInBrowserMsg asks the parent to open a URL in the browser.
 type OpenInBrowserMsg struct {
 	URL string
 }

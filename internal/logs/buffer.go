@@ -8,12 +8,8 @@ import (
 // MaxBytes is the in-memory cap for a single job log buffer (10 MB).
 const MaxBytes = 10 * 1024 * 1024
 
-// Buffer holds the raw bytes (preserving ANSI) of a job log together
-// with an ANSI-stripped index used for search and failure-marker
-// scanning.
-//
-// Buffer is NOT safe for concurrent use; callers serialize through
-// their own model.
+// Buffer stores raw (ANSI-preserving) log bytes alongside a plain-text index
+// for search. Not safe for concurrent use.
 type Buffer struct {
 	raw        []byte
 	lines      []string

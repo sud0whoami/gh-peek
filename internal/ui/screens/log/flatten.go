@@ -16,13 +16,11 @@ const (
 	// ViewModeCompact shows headers and severity lines (SevNotice and worse)
 	// only — plain and command lines are hidden even in expanded nodes.
 	ViewModeCompact
-	// ViewModeRaw shows the unstructured log, identical to the M5 renderer.
+	// ViewModeRaw shows the unstructured log as a flat, unsegmented stream.
 	ViewModeRaw
 )
 
-// row is one entry in the visible-row slice used by outline and compact modes.
-// In raw mode the caller uses the existing flat renderer and does not
-// populate visibleRows.
+// row is one visible entry in outline/compact mode.
 type row struct {
 	Node      *logs.Node // nil for raw rows
 	Depth     int
@@ -32,12 +30,9 @@ type row struct {
 	Key       string // expansion key for header rows; empty for line rows
 }
 
-// flatten projects an outline and expanded map into a flat []row.
-// For ViewModeRaw it returns nil; the caller should use the existing
-// flat renderer instead.
-//
-// expanded maps stable node path keys ("0", "0/2", "0/2/1" …) to true when
-// that node is expanded. Keys absent from the map are treated as collapsed.
+// flatten projects an outline into a flat row slice for outline/compact rendering.
+// Returns nil for ViewModeRaw. Keys in expanded follow the slash-joined sibling
+// index format ("0", "0/2", "0/2/1"); absent keys are treated as collapsed.
 func flatten(outline *logs.Outline, expanded map[string]bool, viewMode ViewMode) []row {
 	if viewMode == ViewModeRaw {
 		return nil

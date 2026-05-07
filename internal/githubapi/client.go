@@ -34,7 +34,7 @@ const maxLogBytes int64 = 50 * 1024 * 1024
 // jobsPageCap bounds how many pages of jobs ListJobs will fetch.
 const jobsPageCap = 5
 
-// Sentinel errors. Wrap with %w so errors.Is works.
+// Sentinel errors.
 var (
 	ErrUnauthorized   = errors.New("github api: unauthorized")
 	ErrForbidden      = errors.New("github api: forbidden")
@@ -63,8 +63,7 @@ func (e *APIError) Error() string {
 
 func (e *APIError) Unwrap() error { return e.wrapped }
 
-// ActionsClient is the public interface implemented by Client. Other
-// packages depend on this interface, not on Client directly.
+// ActionsClient is the interface other packages depend on (not Client directly).
 type ActionsClient interface {
 	ListRuns(ctx context.Context, repo domain.RepoRef, filter ListRunsFilter) (ListRunsResult, error)
 	GetRun(ctx context.Context, repo domain.RepoRef, runID int64) (domain.WorkflowRun, error)
@@ -103,13 +102,9 @@ type Client struct {
 	tokenFunc  func(host string) (string, error)
 	userAgent  string
 	now        func() time.Time
-	// sf deduplicates identical concurrent GETs. Note: singleflight.Group.Do
-	// runs the closure from the first caller and shares the result with all
-	// waiters. If the first caller's context is cancelled, waiters whose
-	// contexts are still valid are also cancelled. All current call sites pass
-	// context.Background() so this cannot trigger in practice; if a
-	// program-level shutdown context is ever plumbed in, revisit and switch to
-	// DoChan / DoAndForget to isolate per-caller cancellation.
+	// sf deduplicates identical concurrent GETs.
+	// Note: singleflight shares the first caller's result with all waiters,
+	// including cancellation — revisit if a request context is ever plumbed in.
 	sf singleflight.Group
 }
 
@@ -430,9 +425,7 @@ func (c *Client) do(ctx context.Context, repo domain.RepoRef, method, urlStr str
 	return resp, nil
 }
 
-// checkStatus inspects the response and returns a typed error for
-// non-2xx codes. The body is consumed to extract the GitHub message.
-// On success (2xx), it returns nil and leaves resp.Body untouched.
+// checkStatus returns nil for 2xx or a typed error containing the GitHub message.
 func (c *Client) checkStatus(resp *http.Response, endpoint string) error {
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		return nil

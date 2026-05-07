@@ -19,7 +19,6 @@ import (
 )
 
 // fakeClient is a file-local fake implementing githubapi.ActionsClient.
-// Only ListRuns is exercised in M3.
 type fakeClient struct {
 	mu      sync.Mutex
 	calls   int
@@ -673,8 +672,6 @@ func TestGoldenRunsReady(t *testing.T) {
 	normalized := testutil.NormalizeTimestamps(rendered)
 	testutil.AssertGolden(t, "runs_ready", normalized)
 }
-
-// --- Milestone 6: `b` view-cycle tests ---
 
 // pressKey delivers a single keypress to the model and returns the new model.
 func pressKey(t *testing.T, m *Model, s string) *Model {

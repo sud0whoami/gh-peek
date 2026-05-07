@@ -16,9 +16,7 @@ const (
 	NodeLine
 )
 
-// Severity is the semantic level of a log line. The zero value is
-// SevPlain. Higher numeric values are more severe; max-severity
-// bubbling on parent nodes uses straight integer comparison.
+// Severity is the semantic level of a log line (higher = more severe).
 type Severity int
 
 // Severity levels (ordered from least to most severe).
@@ -31,9 +29,7 @@ const (
 	SevError
 )
 
-// Node is a node in the outline tree projected from a job log
-// buffer. The same struct is used for steps, groups, and individual
-// log lines (distinguished by Kind).
+// Node is a step, group, or line in the outline tree.
 type Node struct {
 	Kind         NodeKind
 	Title        string
