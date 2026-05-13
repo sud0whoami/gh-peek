@@ -104,6 +104,16 @@ gh peek    # as a gh extension
 The binary is interactive only — running it with stdout redirected
 prints a one-line message and exits with code 2.
 
+### Open in browser
+
+`--web` is a non-interactive shortcut that resolves the current
+repository and opens its GitHub Actions page in the system browser:
+
+```sh
+gh-peek --web
+gh peek --web
+```
+
 ## Keys
 
 The full key map lives in
