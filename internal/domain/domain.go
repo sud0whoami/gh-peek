@@ -10,9 +10,9 @@ import "time"
 
 // RepoRef identifies a GitHub repository on a particular host.
 type RepoRef struct {
-	Host      string
-	Owner     string
-	Name      string
+	Host  string
+	Owner string
+	Name  string
 	// OwnerType is "Organization" or "User", populated at bootstrap.
 	// Empty string means unknown; callers should default to org-first with
 	// user fallback.
