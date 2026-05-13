@@ -21,6 +21,7 @@ type Theme struct {
 	Running   color.Color
 	Cancelled color.Color
 	Skipped   color.Color
+	Info      color.Color // informational / neutral highlight (e.g. stable release badge)
 
 	// UI chrome colors.
 	MutedColor  color.Color // subtle text, timestamps, pane section labels
@@ -41,6 +42,7 @@ func DefaultTheme() Theme {
 		Running:   lipgloss.Color("#8be9fd"),
 		Cancelled: lipgloss.Color("#6272a4"),
 		Skipped:   lipgloss.Color("#6272a4"),
+		Info:      lipgloss.Color("#8be9fd"),
 
 		MutedColor:  lipgloss.Color("#6272a4"),
 		Accent:      lipgloss.Color("#bd93f9"),

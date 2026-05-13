@@ -160,6 +160,7 @@ func TestBadgesPreDraft(t *testing.T) {
 		makeRelease(3, "v2.0.0-rc.1", "RC", "octo", false, true, time.Hour),
 		makeRelease(2, "v2.0.0", "Two", "octo", false, false, 2*time.Hour),
 		makeRelease(4, "draft-x", "Draft", "octo", true, false, 0),
+		makeRelease(5, "v1.9.0", "Old", "octo", false, false, 24*time.Hour),
 	}}, nil)
 	m := drainInit(t, newModel(t, fc))
 	v := m.View().Content
@@ -171,6 +172,25 @@ func TestBadgesPreDraft(t *testing.T) {
 	}
 	if !strings.Contains(v, "latest") {
 		t.Errorf("view missing latest badge: %q", v)
+	}
+	if !strings.Contains(v, "[ stable ]") {
+		t.Errorf("view missing stable badge: %q", v)
+	}
+}
+
+func TestStableBadge_NonLatestPublishedRelease(t *testing.T) {
+	fc := &fakeClient{}
+	fc.push(githubapi.ListReleasesResult{Releases: []domain.Release{
+		makeRelease(10, "v3.0.0", "Three", "octo", false, false, time.Hour),
+		makeRelease(9, "v2.0.0", "Two", "octo", false, false, 48*time.Hour),
+	}}, nil)
+	m := drainInit(t, newModel(t, fc))
+	v := m.View().Content
+	if !strings.Contains(v, "[ latest ]") {
+		t.Errorf("view missing latest badge: %q", v)
+	}
+	if !strings.Contains(v, "[ stable ]") {
+		t.Errorf("view missing stable badge for older non-prerelease: %q", v)
 	}
 }
 

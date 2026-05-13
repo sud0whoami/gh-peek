@@ -91,7 +91,7 @@ func (m *Model) renderBody() string {
 // Columns: BADGE | TAG | TITLE | AUTHOR | ASSETS | PUBLISHED
 func (m *Model) columnWidths() (badge, tag, title, author, assets, published int) {
 	const sepCount = 5
-	const badgeCol = 9 // "[ latest ]" trimmed
+	const badgeCol = 10 // "[ latest ]" is 10 visible cells (currently widest badge)
 	avail := m.width - sepCount
 	if avail < 30 {
 		avail = 30
@@ -158,10 +158,10 @@ func (m *Model) renderTable(rows []domain.Release) string {
 }
 
 // renderBadge picks a colored badge for the release.
-//   - "draft" (skipped color) for draft releases
-//   - "pre" (pending/yellow) for prereleases
-//   - "latest" (success/green) for the first published non-draft non-prerelease
-//   - empty otherwise
+//   - "draft"  (muted)  for draft releases
+//   - "pre"    (yellow) for prereleases
+//   - "latest" (green)  for the newest published non-draft non-prerelease
+//   - "stable" (cyan)   for any other published non-draft non-prerelease
 func (m *Model) renderBadge(r domain.Release, latestID int64) string {
 	switch {
 	case r.Draft:
@@ -171,7 +171,7 @@ func (m *Model) renderBadge(r domain.Release, latestID int64) string {
 	case r.ID == latestID && latestID != 0:
 		return styled(m.theme.Success, "[ latest ]")
 	default:
-		return ""
+		return styled(m.theme.Info, "[ stable ]")
 	}
 }
 
