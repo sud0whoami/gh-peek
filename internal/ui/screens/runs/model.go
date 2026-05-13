@@ -146,3 +146,6 @@ type OpenInBrowserMsg struct {
 
 // OpenReleasesMsg asks the parent to switch to the releases list screen.
 type OpenReleasesMsg struct{}
+
+// OpenPackagesMsg asks the parent to switch to the packages list screen.
+type OpenPackagesMsg struct{}

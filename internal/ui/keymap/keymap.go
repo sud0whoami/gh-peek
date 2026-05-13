@@ -17,6 +17,7 @@ type Runs struct {
 	BranchCycle  key.Binding
 	OpenBrowse   key.Binding
 	OpenReleases key.Binding
+	OpenPackages key.Binding
 	Help         key.Binding
 	Quit         key.Binding
 	Cancel       key.Binding
@@ -65,6 +66,10 @@ func DefaultRuns() Runs {
 			key.WithKeys("L"),
 			key.WithHelp("L", "releases"),
 		),
+		OpenPackages: key.NewBinding(
+			key.WithKeys("P"),
+			key.WithHelp("P", "packages"),
+		),
 		Help: key.NewBinding(
 			key.WithKeys("?"),
 			key.WithHelp("?", "toggle help"),
@@ -82,7 +87,7 @@ func DefaultRuns() Runs {
 
 // ShortHelp returns the bindings shown in the compact one-line help.
 func (r Runs) ShortHelp() []key.Binding {
-	return []key.Binding{r.Up, r.Down, r.Open, r.Search, r.Refresh, r.AutoToggle, r.OpenBrowse, r.OpenReleases, r.Help, r.Quit}
+	return []key.Binding{r.Up, r.Down, r.Open, r.Search, r.Refresh, r.AutoToggle, r.OpenBrowse, r.OpenReleases, r.OpenPackages, r.Help, r.Quit}
 }
 
 // FullHelp returns bindings grouped into rows for the expanded help
@@ -91,6 +96,6 @@ func (r Runs) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{r.Up, r.Down, r.Open, r.OpenBrowse},
 		{r.Search, r.Cancel, r.ActiveOnly, r.BranchCycle},
-		{r.OpenReleases, r.Refresh, r.AutoToggle, r.Help, r.Quit},
+		{r.OpenReleases, r.OpenPackages, r.Refresh, r.AutoToggle, r.Help, r.Quit},
 	}
 }
