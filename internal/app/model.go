@@ -11,6 +11,8 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/domain"
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
 	logscreen "github.com/sud0whoami/gh-peek/internal/ui/screens/log"
+	"github.com/sud0whoami/gh-peek/internal/ui/screens/packages"
+	"github.com/sud0whoami/gh-peek/internal/ui/screens/pkgscreen"
 	releasescreen "github.com/sud0whoami/gh-peek/internal/ui/screens/release"
 	"github.com/sud0whoami/gh-peek/internal/ui/screens/releases"
 	runscreen "github.com/sud0whoami/gh-peek/internal/ui/screens/run"
@@ -27,6 +29,8 @@ const (
 	activeLogViewer
 	activeReleasesList
 	activeReleaseDetail
+	activePackagesList
+	activePackageDetail
 )
 
 // RootParams holds dependencies for NewRouter.
@@ -36,6 +40,9 @@ type RootParams struct {
 	// ReleasesClient is optional; if nil, the same concrete client passed
 	// as Client is used when it also implements ReleasesClient.
 	ReleasesClient githubapi.ReleasesClient
+	// PackagesClient is optional; if nil, the same concrete Client is used
+	// when it implements PackagesClient.
+	PackagesClient githubapi.PackagesClient
 	Now            func() time.Time
 	Width          int
 	Height         int
@@ -56,6 +63,8 @@ type Model struct {
 	logScreen           *logscreen.Model
 	releasesScreen      *releases.Model
 	releaseDetailScreen *releasescreen.Model
+	packagesScreen      *packages.Model
+	packageDetailScreen *pkgscreen.Model
 	active              activeScreen
 	browserOpener       browser.Opener
 }
@@ -243,6 +252,68 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.releaseDetailScreen = nil
 		m.active = activeReleasesList
 		return m, nil
+
+	case runs.OpenPackagesMsg:
+		if m.params == nil {
+			return m, nil
+		}
+		pc := m.packagesClient()
+		if pc == nil {
+			return m, nil
+		}
+		if m.packagesScreen == nil {
+			m.packagesScreen = packages.New(packages.Params{
+				Repo:         m.params.Startup.Repo.Repo,
+				Client:       pc,
+				Now:          m.params.Now,
+				Width:        m.width,
+				Height:       m.height,
+				AutoRefresh:  m.params.AutoRefresh,
+				TickInterval: m.params.TickInterval,
+			})
+			m.active = activePackagesList
+			return m, m.packagesScreen.Init()
+		}
+		m.active = activePackagesList
+		return m, nil
+
+	case packages.OpenPackageMsg:
+		if m.params == nil {
+			return m, nil
+		}
+		pc := m.packagesClient()
+		if pc == nil {
+			return m, nil
+		}
+		detail := pkgscreen.New(pkgscreen.Params{
+			Repo:         msg.Repo,
+			PackageID:    msg.PackageID,
+			Initial:      msg.Package,
+			Client:       pc,
+			Now:          m.params.Now,
+			Width:        m.width,
+			Height:       m.height,
+			AutoRefresh:  m.params.AutoRefresh,
+			TickInterval: m.params.TickInterval,
+		})
+		m.packageDetailScreen = detail
+		m.active = activePackageDetail
+		return m, detail.Init()
+
+	case packages.OpenInBrowserMsg:
+		return m, m.openBrowserCmd(msg.URL)
+
+	case packages.BackToRunsMsg:
+		m.active = activeRuns
+		return m, nil
+
+	case pkgscreen.OpenInBrowserMsg:
+		return m, m.openBrowserCmd(msg.URL)
+
+	case pkgscreen.BackMsg:
+		m.packageDetailScreen = nil
+		m.active = activePackagesList
+		return m, nil
 	}
 
 	// 4. Delegate to active child.
@@ -292,6 +363,22 @@ func (m *Model) delegate(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, cmd
 		}
+	case activePackagesList:
+		if m.packagesScreen != nil {
+			updated, cmd := m.packagesScreen.Update(msg)
+			if pm, ok := updated.(*packages.Model); ok {
+				m.packagesScreen = pm
+			}
+			return m, cmd
+		}
+	case activePackageDetail:
+		if m.packageDetailScreen != nil {
+			updated, cmd := m.packageDetailScreen.Update(msg)
+			if pm, ok := updated.(*pkgscreen.Model); ok {
+				m.packageDetailScreen = pm
+			}
+			return m, cmd
+		}
 	}
 	return m, nil
 }
@@ -336,6 +423,14 @@ func (m *Model) View() tea.View {
 		if m.releaseDetailScreen != nil {
 			return m.releaseDetailScreen.View()
 		}
+	case activePackagesList:
+		if m.packagesScreen != nil {
+			return m.packagesScreen.View()
+		}
+	case activePackageDetail:
+		if m.packageDetailScreen != nil {
+			return m.packageDetailScreen.View()
+		}
 	}
 	return tea.NewView("gh-peek — initializing…")
 }
@@ -351,6 +446,21 @@ func (m *Model) releasesClient() githubapi.ReleasesClient {
 	}
 	if rc, ok := m.params.Client.(githubapi.ReleasesClient); ok {
 		return rc
+	}
+	return nil
+}
+
+// packagesClient returns the configured PackagesClient, falling back to
+// the Client if it also implements PackagesClient.
+func (m *Model) packagesClient() githubapi.PackagesClient {
+	if m.params == nil {
+		return nil
+	}
+	if m.params.PackagesClient != nil {
+		return m.params.PackagesClient
+	}
+	if pc, ok := m.params.Client.(githubapi.PackagesClient); ok {
+		return pc
 	}
 	return nil
 }

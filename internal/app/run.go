@@ -68,6 +68,7 @@ func runWithDeps(stdout, stderr io.Writer, isTTY bool, deps runDeps) int {
 		Startup:        startup,
 		Client:         client,
 		ReleasesClient: client,
+		PackagesClient: client,
 		Now:            time.Now,
 		Width:          100,
 		Height:         30,
