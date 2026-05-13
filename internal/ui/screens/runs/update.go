@@ -157,6 +157,8 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "?":
 		m.showHelp = !m.showHelp
 		return m, nil
+	case "L":
+		return m, func() tea.Msg { return OpenReleasesMsg{} }
 	}
 	return m, nil
 }

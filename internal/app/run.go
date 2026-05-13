@@ -65,12 +65,13 @@ func runWithDeps(stdout, stderr io.Writer, isTTY bool, deps runDeps) int {
 
 	client := githubapi.New()
 	root := NewRouter(RootParams{
-		Startup:     startup,
-		Client:      client,
-		Now:         time.Now,
-		Width:       100,
-		Height:      30,
-		AutoRefresh: true,
+		Startup:        startup,
+		Client:         client,
+		ReleasesClient: client,
+		Now:            time.Now,
+		Width:          100,
+		Height:         30,
+		AutoRefresh:    true,
 	})
 
 	if err := deps.runProgram(root, stdout); err != nil {

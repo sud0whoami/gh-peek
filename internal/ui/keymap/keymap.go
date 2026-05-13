@@ -7,18 +7,19 @@ import (
 
 // Runs is the set of key bindings for the runs list screen.
 type Runs struct {
-	Up          key.Binding
-	Down        key.Binding
-	Open        key.Binding
-	Search      key.Binding
-	Refresh     key.Binding
-	AutoToggle  key.Binding
-	ActiveOnly  key.Binding
-	BranchCycle key.Binding
-	OpenBrowse  key.Binding
-	Help        key.Binding
-	Quit        key.Binding
-	Cancel      key.Binding
+	Up           key.Binding
+	Down         key.Binding
+	Open         key.Binding
+	Search       key.Binding
+	Refresh      key.Binding
+	AutoToggle   key.Binding
+	ActiveOnly   key.Binding
+	BranchCycle  key.Binding
+	OpenBrowse   key.Binding
+	OpenReleases key.Binding
+	Help         key.Binding
+	Quit         key.Binding
+	Cancel       key.Binding
 }
 
 // DefaultRuns returns the default Runs key bindings.
@@ -60,6 +61,10 @@ func DefaultRuns() Runs {
 			key.WithKeys("o"),
 			key.WithHelp("o", "open in browser"),
 		),
+		OpenReleases: key.NewBinding(
+			key.WithKeys("L"),
+			key.WithHelp("L", "releases"),
+		),
 		Help: key.NewBinding(
 			key.WithKeys("?"),
 			key.WithHelp("?", "toggle help"),
@@ -77,7 +82,7 @@ func DefaultRuns() Runs {
 
 // ShortHelp returns the bindings shown in the compact one-line help.
 func (r Runs) ShortHelp() []key.Binding {
-	return []key.Binding{r.Up, r.Down, r.Open, r.Search, r.Refresh, r.AutoToggle, r.OpenBrowse, r.Help, r.Quit}
+	return []key.Binding{r.Up, r.Down, r.Open, r.Search, r.Refresh, r.AutoToggle, r.OpenBrowse, r.OpenReleases, r.Help, r.Quit}
 }
 
 // FullHelp returns bindings grouped into rows for the expanded help
@@ -86,6 +91,6 @@ func (r Runs) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{r.Up, r.Down, r.Open, r.OpenBrowse},
 		{r.Search, r.Cancel, r.ActiveOnly, r.BranchCycle},
-		{r.Refresh, r.AutoToggle, r.Help, r.Quit},
+		{r.OpenReleases, r.Refresh, r.AutoToggle, r.Help, r.Quit},
 	}
 }

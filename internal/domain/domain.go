@@ -111,6 +111,44 @@ type JobLog struct {
 	LoadedAt time.Time
 }
 
+// Release is a single GitHub Release.
+type Release struct {
+	ID          int64
+	TagName     string
+	Name        string
+	Body        string
+	Draft       bool
+	Prerelease  bool
+	CreatedAt   time.Time
+	PublishedAt *time.Time
+	Author      ReleaseAuthor
+	URL         string
+	TarballURL  string
+	ZipballURL  string
+	Assets      []ReleaseAsset
+}
+
+// ReleaseAuthor is the user who published the release.
+type ReleaseAuthor struct {
+	Login     string
+	AvatarURL string
+	HTMLURL   string
+}
+
+// ReleaseAsset is a file attached to a release.
+type ReleaseAsset struct {
+	ID            int64
+	Name          string
+	Label         string
+	ContentType   string
+	Size          int64
+	DownloadCount int
+	State         string
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	BrowserURL    string
+}
+
 // SemanticStatus is the UI-facing status for a run, job, or step.
 // It collapses GitHub's status + conclusion fields into a small set
 // of values that map to theme colors and icons.

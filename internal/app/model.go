@@ -11,6 +11,8 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/domain"
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
 	logscreen "github.com/sud0whoami/gh-peek/internal/ui/screens/log"
+	releasescreen "github.com/sud0whoami/gh-peek/internal/ui/screens/release"
+	"github.com/sud0whoami/gh-peek/internal/ui/screens/releases"
 	runscreen "github.com/sud0whoami/gh-peek/internal/ui/screens/run"
 	"github.com/sud0whoami/gh-peek/internal/ui/screens/runs"
 )
@@ -23,16 +25,21 @@ const (
 	activeRuns
 	activeRunDetail
 	activeLogViewer
+	activeReleasesList
+	activeReleaseDetail
 )
 
 // RootParams holds dependencies for NewRouter.
 type RootParams struct {
-	Startup     domain.StartupContext
-	Client      githubapi.ActionsClient
-	Now         func() time.Time
-	Width       int
-	Height      int
-	AutoRefresh bool
+	Startup domain.StartupContext
+	Client  githubapi.ActionsClient
+	// ReleasesClient is optional; if nil, the same concrete client passed
+	// as Client is used when it also implements ReleasesClient.
+	ReleasesClient githubapi.ReleasesClient
+	Now            func() time.Time
+	Width          int
+	Height         int
+	AutoRefresh    bool
 	// TickInterval overrides the 7s auto-refresh cadence in child screens.
 	TickInterval time.Duration
 	// BrowserOpener opens URLs. Defaults to browser.OSOpener{}.
@@ -42,13 +49,15 @@ type RootParams struct {
 // Model is the root Bubble Tea model for gh-peek.
 // New() returns a minimal placeholder; NewRouter() wires up the full screen stack.
 type Model struct {
-	params        *RootParams
-	width, height int
-	runsScreen    *runs.Model
-	detailScreen  *runscreen.Model
-	logScreen     *logscreen.Model
-	active        activeScreen
-	browserOpener browser.Opener
+	params              *RootParams
+	width, height       int
+	runsScreen          *runs.Model
+	detailScreen        *runscreen.Model
+	logScreen           *logscreen.Model
+	releasesScreen      *releases.Model
+	releaseDetailScreen *releasescreen.Model
+	active              activeScreen
+	browserOpener       browser.Opener
 }
 
 // New returns a minimal placeholder model used in tests.
@@ -172,6 +181,68 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.detailScreen = nil
 		m.active = activeRuns
 		return m, nil
+
+	case runs.OpenReleasesMsg:
+		if m.params == nil {
+			return m, nil
+		}
+		rc := m.releasesClient()
+		if rc == nil {
+			return m, nil
+		}
+		if m.releasesScreen == nil {
+			m.releasesScreen = releases.New(releases.Params{
+				Repo:         m.params.Startup.Repo.Repo,
+				Client:       rc,
+				Now:          m.params.Now,
+				Width:        m.width,
+				Height:       m.height,
+				AutoRefresh:  m.params.AutoRefresh,
+				TickInterval: m.params.TickInterval,
+			})
+			m.active = activeReleasesList
+			return m, m.releasesScreen.Init()
+		}
+		m.active = activeReleasesList
+		return m, nil
+
+	case releases.OpenReleaseMsg:
+		if m.params == nil {
+			return m, nil
+		}
+		rc := m.releasesClient()
+		if rc == nil {
+			return m, nil
+		}
+		detail := releasescreen.New(releasescreen.Params{
+			Repo:         msg.Repo,
+			ReleaseID:    msg.ReleaseID,
+			Initial:      msg.Release,
+			Client:       rc,
+			Now:          m.params.Now,
+			Width:        m.width,
+			Height:       m.height,
+			AutoRefresh:  m.params.AutoRefresh,
+			TickInterval: m.params.TickInterval,
+		})
+		m.releaseDetailScreen = detail
+		m.active = activeReleaseDetail
+		return m, detail.Init()
+
+	case releases.OpenInBrowserMsg:
+		return m, m.openBrowserCmd(msg.URL)
+
+	case releases.BackToRunsMsg:
+		m.active = activeRuns
+		return m, nil
+
+	case releasescreen.OpenInBrowserMsg:
+		return m, m.openBrowserCmd(msg.URL)
+
+	case releasescreen.BackMsg:
+		m.releaseDetailScreen = nil
+		m.active = activeReleasesList
+		return m, nil
 	}
 
 	// 4. Delegate to active child.
@@ -202,6 +273,22 @@ func (m *Model) delegate(msg tea.Msg) (tea.Model, tea.Cmd) {
 			updated, cmd := m.logScreen.Update(msg)
 			if lm, ok := updated.(*logscreen.Model); ok {
 				m.logScreen = lm
+			}
+			return m, cmd
+		}
+	case activeReleasesList:
+		if m.releasesScreen != nil {
+			updated, cmd := m.releasesScreen.Update(msg)
+			if rm, ok := updated.(*releases.Model); ok {
+				m.releasesScreen = rm
+			}
+			return m, cmd
+		}
+	case activeReleaseDetail:
+		if m.releaseDetailScreen != nil {
+			updated, cmd := m.releaseDetailScreen.Update(msg)
+			if rm, ok := updated.(*releasescreen.Model); ok {
+				m.releaseDetailScreen = rm
 			}
 			return m, cmd
 		}
@@ -241,6 +328,29 @@ func (m *Model) View() tea.View {
 		if m.logScreen != nil {
 			return m.logScreen.View()
 		}
+	case activeReleasesList:
+		if m.releasesScreen != nil {
+			return m.releasesScreen.View()
+		}
+	case activeReleaseDetail:
+		if m.releaseDetailScreen != nil {
+			return m.releaseDetailScreen.View()
+		}
 	}
 	return tea.NewView("gh-peek — initializing…")
+}
+
+// releasesClient returns the configured ReleasesClient, falling back to
+// the Client if it also implements ReleasesClient.
+func (m *Model) releasesClient() githubapi.ReleasesClient {
+	if m.params == nil {
+		return nil
+	}
+	if m.params.ReleasesClient != nil {
+		return m.params.ReleasesClient
+	}
+	if rc, ok := m.params.Client.(githubapi.ReleasesClient); ok {
+		return rc
+	}
+	return nil
 }

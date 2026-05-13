@@ -1,5 +1,4 @@
-// Package runs implements the workflow run list screen.
-package runs
+package releases
 
 import (
 	"time"
@@ -22,65 +21,41 @@ const (
 	StateError
 )
 
-// viewMode controls which subset of runs is shown; cycled by 'b'.
-type viewMode int
-
-const (
-	viewModeBranch viewMode = iota
-	viewModePR
-	viewModeAll
-)
-
-func (v viewMode) String() string {
-	switch v {
-	case viewModeBranch:
-		return "branch"
-	case viewModePR:
-		return "pr"
-	case viewModeAll:
-		return "all"
-	default:
-		return "?"
-	}
-}
-
 // Params holds the configuration for New.
 type Params struct {
-	Startup     domain.StartupContext
-	Client      githubapi.ActionsClient
+	Repo        domain.RepoRef
+	Client      githubapi.ReleasesClient
 	Now         func() time.Time
 	Width       int
 	Height      int
 	AutoRefresh bool
-	// TickInterval overrides the default 7s polling cadence. Zero means default.
+	// TickInterval overrides the default polling cadence. Zero means default.
 	TickInterval time.Duration
 }
 
-// Model is the Bubble Tea model for the runs list screen.
+// Model is the Bubble Tea model for the releases list screen.
 type Model struct {
 	params Params
-	keys   keymap.Runs
+	keys   keymap.Releases
 	theme  styles.Theme
 	width  int
 	height int
 
 	state         State
-	runs          []domain.WorkflowRun
+	releases      []domain.Release
 	cursor        int
 	input         textinput.Model
-	activeOnly    bool
 	showHelp      bool
 	autoRefresh   bool
 	tickInterval  time.Duration
 	lastETag      string
 	lastRefreshed time.Time
 	loading       bool
-	loadErr       error // set on first-load failure
-	refreshErr    error // set on refresh failure when prior data exists
-	viewMode      viewMode
+	loadErr       error
+	refreshErr    error
 }
 
-// New returns a Model ready to fetch runs.
+// New returns a Model ready to fetch releases.
 func New(p Params) *Model {
 	if p.Now == nil {
 		p.Now = time.Now
@@ -93,7 +68,7 @@ func New(p Params) *Model {
 	}
 	in := textinput.New()
 	in.Prompt = "/ "
-	in.Placeholder = "filter runs"
+	in.Placeholder = "filter releases"
 	in.CharLimit = 128
 	interval := p.TickInterval
 	if interval <= 0 {
@@ -101,7 +76,7 @@ func New(p Params) *Model {
 	}
 	return &Model{
 		params:       p,
-		keys:         keymap.DefaultRuns(),
+		keys:         keymap.DefaultReleases(),
 		theme:        styles.DefaultTheme(),
 		width:        p.Width,
 		height:       p.Height,
@@ -110,33 +85,24 @@ func New(p Params) *Model {
 		tickInterval: interval,
 		input:        in,
 		loading:      true,
-		viewMode:     initialViewMode(p.Startup),
-	}
-}
-
-func initialViewMode(sc domain.StartupContext) viewMode {
-	switch sc.Kind {
-	case domain.StartContextPR:
-		return viewModePR
-	case domain.StartContextBranch:
-		return viewModeBranch
-	default:
-		return viewModeAll
 	}
 }
 
 type tickMsg struct{}
 
-// runsLoadedMsg carries a fetch result.
-type runsLoadedMsg struct {
-	Result githubapi.ListRunsResult
+// releasesLoadedMsg carries a fetch result.
+type releasesLoadedMsg struct {
+	Result githubapi.ListReleasesResult
 	Err    error
 }
 
-// OpenRunMsg asks the parent to open run detail.
-type OpenRunMsg struct {
-	RunID int64
-	Repo  domain.RepoRef
+// OpenReleaseMsg asks the parent to open release detail.
+type OpenReleaseMsg struct {
+	ReleaseID int64
+	Repo      domain.RepoRef
+	// Release is included so the detail screen can render immediately
+	// without an extra fetch when the list payload already has the data.
+	Release domain.Release
 }
 
 // OpenInBrowserMsg asks the parent to open a URL in the browser.
@@ -144,5 +110,5 @@ type OpenInBrowserMsg struct {
 	URL string
 }
 
-// OpenReleasesMsg asks the parent to switch to the releases list screen.
-type OpenReleasesMsg struct{}
+// BackToRunsMsg asks the parent to return to the runs screen.
+type BackToRunsMsg struct{}

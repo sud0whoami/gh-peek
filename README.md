@@ -21,6 +21,10 @@ Open it from a checkout and it picks the right starting view:
   in-memory buffer that preserves ANSI for rendering and strips it for
   search.
 - `o` opens the focused run / job in the system browser.
+- Releases browser (`L` from the runs list) with status badges
+  (`latest` / `pre` / `draft`), substring search, release notes and
+  asset table in the detail view, and `enter` on an asset opens its
+  download URL in the browser.
 - Auto-refresh on visible screens with active runs, paused while typing
   in a search input.
 - Friendly bootstrap errors (`gh` missing, not a git repo, no GitHub
@@ -121,7 +125,7 @@ The full key map lives in
 
 - Runs list: `↑/↓` move · `enter` open · `/` search · `a` active-only ·
   `b` cycle view · `r` refresh · `R` toggle auto-refresh · `o` browser ·
-  `?` help · `q` quit
+  `L` releases · `?` help · `q` quit
 - Run detail: `↑/↓`/`j`/`k` move · `tab` switch pane · `enter` open job log · `o` browser ·
   `r` refresh · `R` toggle auto-refresh · `?` help · `esc`/`b` back · `q` quit
 - Log viewer: `↑/↓`/`j`/`k` cursor · `PgUp`/`PgDn` page · `g`/`G` top/bottom ·
@@ -129,6 +133,11 @@ The full key map lives in
   `O` collapse all · `t` timestamps · `v` cycle mode (outline/compact/raw) ·
   `/` search · `n`/`N` next/prev · `w` wrap · `F` first failure ·
   `r` refresh · `R` toggle auto-refresh · `o` browser · `?` help · `esc`/`b` back · `q` quit
+- Releases list: `↑/↓` move · `enter` open · `/` search · `r` refresh ·
+  `R` toggle auto-refresh · `o` browser · `esc`/`b`/`L` back to runs · `?` help · `q` quit
+- Release detail: `↑/↓`/`j`/`k` scroll / move · `tab` switch pane (notes / assets) ·
+  `enter` open focused asset in browser · `o` open release page ·
+  `r` refresh · `R` toggle auto-refresh · `?` help · `esc`/`b` back · `q` quit
 
 ## Configuration
 
