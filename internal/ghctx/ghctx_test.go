@@ -22,12 +22,18 @@ func TestCurrentRepo_Happy(t *testing.T) {
 		Repo: func() (RepoLike, error) {
 			return fakeRepo{host: "github.com", owner: "octocat", name: "hello"}, nil
 		},
+		Exec: func(_ context.Context, args ...string) (bytes.Buffer, bytes.Buffer, error) {
+			// Return org owner type for the owner-type call.
+			var stdout bytes.Buffer
+			stdout.WriteString(`{"owner":{"type":"Organization"}}`)
+			return stdout, bytes.Buffer{}, nil
+		},
 	}
 	got, err := g.CurrentRepo(context.Background())
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
-	want := domain.RepoRef{Host: "github.com", Owner: "octocat", Name: "hello"}
+	want := domain.RepoRef{Host: "github.com", Owner: "octocat", Name: "hello", OwnerType: "Organization"}
 	if got != want {
 		t.Fatalf("got %#v, want %#v", got, want)
 	}
@@ -43,6 +49,47 @@ func TestCurrentRepo_NoRepo(t *testing.T) {
 	_, err := g.CurrentRepo(context.Background())
 	if !errors.Is(err, ErrNoGitHubRepo) {
 		t.Fatalf("err = %v, want wrapped ErrNoGitHubRepo", err)
+	}
+}
+
+func TestCurrentRepo_OwnerTypeFallback(t *testing.T) {
+	t.Parallel()
+	// When the owner-type fetch fails, OwnerType is empty but no error is returned.
+	g := &GH{
+		Repo: func() (RepoLike, error) {
+			return fakeRepo{host: "github.com", owner: "octocat", name: "hello"}, nil
+		},
+		Exec: func(_ context.Context, _ ...string) (bytes.Buffer, bytes.Buffer, error) {
+			return bytes.Buffer{}, bytes.Buffer{}, errors.New("fetch failed")
+		},
+	}
+	got, err := g.CurrentRepo(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if got.OwnerType != "" {
+		t.Errorf("OwnerType = %q, want empty on failure", got.OwnerType)
+	}
+}
+
+func TestCurrentRepo_UserOwnerType(t *testing.T) {
+	t.Parallel()
+	g := &GH{
+		Repo: func() (RepoLike, error) {
+			return fakeRepo{host: "github.com", owner: "user1", name: "repo"}, nil
+		},
+		Exec: func(_ context.Context, _ ...string) (bytes.Buffer, bytes.Buffer, error) {
+			var stdout bytes.Buffer
+			stdout.WriteString(`{"owner":{"type":"User"}}`)
+			return stdout, bytes.Buffer{}, nil
+		},
+	}
+	got, err := g.CurrentRepo(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if got.OwnerType != "User" {
+		t.Errorf("OwnerType = %q, want User", got.OwnerType)
 	}
 }
 
