@@ -10,6 +10,7 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/browser"
 	"github.com/sud0whoami/gh-peek/internal/domain"
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
+	"github.com/sud0whoami/gh-peek/internal/ui/layout"
 	logscreen "github.com/sud0whoami/gh-peek/internal/ui/screens/log"
 	"github.com/sud0whoami/gh-peek/internal/ui/screens/packages"
 	"github.com/sud0whoami/gh-peek/internal/ui/screens/pkgscreen"
@@ -58,6 +59,7 @@ type RootParams struct {
 type Model struct {
 	params              *RootParams
 	width, height       int
+	frame               layout.Frame
 	runsScreen          *runs.Model
 	detailScreen        *runscreen.Model
 	logScreen           *logscreen.Model
@@ -82,11 +84,12 @@ func NewRouter(p RootParams) *Model {
 	if p.BrowserOpener == nil {
 		p.BrowserOpener = browser.OSOpener{}
 	}
+	frame := layout.Compute(p.Width)
 	rs := runs.New(runs.Params{
 		Startup:      p.Startup,
 		Client:       p.Client,
 		Now:          p.Now,
-		Width:        p.Width,
+		Width:        frame.Content,
 		Height:       p.Height,
 		AutoRefresh:  p.AutoRefresh,
 		TickInterval: p.TickInterval,
@@ -95,6 +98,7 @@ func NewRouter(p RootParams) *Model {
 		params:        &p,
 		width:         p.Width,
 		height:        p.Height,
+		frame:         frame,
 		runsScreen:    rs,
 		active:        activeRuns,
 		browserOpener: p.BrowserOpener,
@@ -123,7 +127,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	if ws, ok := msg.(tea.WindowSizeMsg); ok {
 		m.width = ws.Width
 		m.height = ws.Height
-		return m.delegate(ws)
+		m.frame = layout.Compute(ws.Width)
+		return m.delegate(tea.WindowSizeMsg{Width: m.frame.Content, Height: ws.Height})
 	}
 
 	// 3. Intercept navigation messages from child screens before delegation.
@@ -137,7 +142,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			RunID:        msg.RunID,
 			Client:       m.params.Client,
 			Now:          m.params.Now,
-			Width:        m.width,
+			Width:        m.frame.Content,
 			Height:       m.height,
 			AutoRefresh:  true,
 			TickInterval: m.params.TickInterval,
@@ -163,7 +168,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			JobName:      msg.JobName,
 			Client:       m.params.Client,
 			Now:          m.params.Now,
-			Width:        m.width,
+			Width:        m.frame.Content,
 			Height:       m.height,
 			AutoRefresh:  true,
 			TickInterval: m.params.TickInterval,
@@ -204,7 +209,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				Repo:         m.params.Startup.Repo.Repo,
 				Client:       rc,
 				Now:          m.params.Now,
-				Width:        m.width,
+				Width:        m.frame.Content,
 				Height:       m.height,
 				AutoRefresh:  m.params.AutoRefresh,
 				TickInterval: m.params.TickInterval,
@@ -229,7 +234,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Initial:      msg.Release,
 			Client:       rc,
 			Now:          m.params.Now,
-			Width:        m.width,
+			Width:        m.frame.Content,
 			Height:       m.height,
 			AutoRefresh:  m.params.AutoRefresh,
 			TickInterval: m.params.TickInterval,
@@ -273,7 +278,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Initial:      msg.Package,
 			Client:       pc,
 			Now:          m.params.Now,
-			Width:        m.width,
+			Width:        m.frame.Content,
 			Height:       m.height,
 			AutoRefresh:  m.params.AutoRefresh,
 			TickInterval: m.params.TickInterval,
@@ -384,37 +389,44 @@ func (m *Model) openBrowserCmd(url string) tea.Cmd {
 
 // View implements tea.Model.
 func (m *Model) View() tea.View {
+	if m.frame.TooNarrow {
+		return tea.NewView("gh-peek: terminal too narrow — needs ≥80 columns")
+	}
+	var content string
 	switch m.active {
 	case activeRuns:
 		if m.runsScreen != nil {
-			return m.runsScreen.View()
+			content = m.runsScreen.View().Content
 		}
 	case activeRunDetail:
 		if m.detailScreen != nil {
-			return m.detailScreen.View()
+			content = m.detailScreen.View().Content
 		}
 	case activeLogViewer:
 		if m.logScreen != nil {
-			return m.logScreen.View()
+			content = m.logScreen.View().Content
 		}
 	case activeReleasesList:
 		if m.releasesScreen != nil {
-			return m.releasesScreen.View()
+			content = m.releasesScreen.View().Content
 		}
 	case activeReleaseDetail:
 		if m.releaseDetailScreen != nil {
-			return m.releaseDetailScreen.View()
+			content = m.releaseDetailScreen.View().Content
 		}
 	case activePackagesList:
 		if m.packagesScreen != nil {
-			return m.packagesScreen.View()
+			content = m.packagesScreen.View().Content
 		}
 	case activePackageDetail:
 		if m.packageDetailScreen != nil {
-			return m.packageDetailScreen.View()
+			content = m.packageDetailScreen.View().Content
 		}
 	}
-	return tea.NewView("gh-peek — initializing…")
+	if content == "" {
+		content = "gh-peek — initializing…"
+	}
+	return tea.NewView(m.frame.Center(content))
 }
 
 // releasesClient returns the configured ReleasesClient, falling back to
@@ -462,7 +474,7 @@ func (m *Model) openPackagesList() (tea.Model, tea.Cmd) {
 			Repo:         m.params.Startup.Repo.Repo,
 			Client:       pc,
 			Now:          m.params.Now,
-			Width:        m.width,
+			Width:        m.frame.Content,
 			Height:       m.height,
 			AutoRefresh:  m.params.AutoRefresh,
 			TickInterval: m.params.TickInterval,
