@@ -21,16 +21,11 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/ui/screens/runs"
 )
 
-// Dracula palette colours used for the outer chrome.
+// Dracula colours for the outer chrome.
 const (
-	// draculaBg is the darkest background colour — fills the terminal
-	// outside the content frame.
-	draculaBg = "#282a36"
-	// draculaBorder is the muted blue used for the rounded frame border.
-	draculaBorder = "#6272a4"
-	// frameBorderSides is the horizontal space consumed by one border char
-	// on each side (left + right = 2 columns).
-	frameBorderSides = 2
+	draculaBg        = "#282a36" // background, outside the frame
+	draculaBorder    = "#6272a4" // muted blue for the rounded border
+	frameBorderSides = 2         // 1 border char each side
 )
 
 // activeScreen identifies which child screen is currently visible.
@@ -400,8 +395,8 @@ func (m *Model) openBrowserCmd(url string) tea.Cmd {
 	}
 }
 
-// innerWidth returns the usable content width for child screens after
-// accounting for the horizontal border characters around the content frame.
+// innerWidth is the content width children should render into so the
+// framed box fits within frame.Content without overflowing.
 func (m *Model) innerWidth() int {
 	w := m.frame.Content - frameBorderSides
 	if w < 1 {
@@ -410,8 +405,8 @@ func (m *Model) innerWidth() int {
 	return w
 }
 
-// frameContent wraps s in a Dracula-styled rounded border and places it in
-// the terminal area with a background-coloured surround.
+// frameContent wraps s in a rounded border and fills the surrounding
+// terminal area with the Dracula background colour.
 func (m *Model) frameContent(s string) string {
 	framed := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
@@ -434,7 +429,6 @@ func (m *Model) frameContent(s string) string {
 // View implements tea.Model.
 func (m *Model) View() tea.View {
 	if m.frame.TooNarrow {
-		// Show the too-narrow message also with background filling.
 		msg := "gh-peek: terminal too narrow — needs ≥80 columns"
 		if m.height > 0 {
 			bgStyle := lipgloss.NewStyle().Background(lipgloss.Color(draculaBg))
