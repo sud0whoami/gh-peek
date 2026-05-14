@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"image/color"
 	"strings"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 
 	"github.com/sud0whoami/gh-peek/internal/domain"
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
+	"github.com/sud0whoami/gh-peek/internal/ui/widgets"
+	"github.com/sud0whoami/gh-peek/internal/ui/widgets/table"
 )
 
 // View implements tea.Model.
@@ -52,7 +53,7 @@ func (m *Model) statusIndicatorText() string {
 		return "⏼ off"
 	case !m.lastRefreshed.IsZero():
 		d := m.params.Now().Sub(m.lastRefreshed)
-		return "✓ " + humanizeAgo(d)
+		return "✓ " + widgets.HumanizeAgo(d)
 	default:
 		return "✓"
 	}
@@ -87,50 +88,33 @@ func (m *Model) renderBody() string {
 	return ""
 }
 
-// columnWidths computes the per-column widths.
-// Columns: BADGE | TAG | TITLE | AUTHOR | ASSETS | PUBLISHED
-func (m *Model) columnWidths() (badge, tag, title, author, assets, published int) {
-	const sepCount = 5
-	const badgeCol = 10 // "[ latest ]" is 10 visible cells (currently widest badge)
-	avail := m.width - sepCount
-	if avail < 30 {
-		avail = 30
-	}
-	badge = badgeCol
-	rest := avail - badge
-	tag = clampInt(rest/6, 8, 16)
-	author = clampInt(rest/8, 6, 14)
-	assets = clampInt(rest/12, 6, 8)
-	published = clampInt(rest/8, 8, 12)
-	used := tag + author + assets + published
-	title = rest - used
-	if title < 8 {
-		title = 8
-	}
-	return
+// releasesTable defines the column layout for the releases list.
+var releasesTable = table.Table{
+	Cols: []table.Col{
+		{Title: "", Min: 10, Max: 10, Ideal: 10}, // badge (fixed)
+		{Title: "TAG", Min: 8, Max: 16, Ideal: 14},
+		{Title: "TITLE", Min: 8, Max: 80, Ideal: 44, Elastic: true},
+		{Title: "AUTHOR", Min: 6, Max: 14, Ideal: 10},
+		{Title: "ASSETS", Min: 6, Max: 8, Ideal: 7},
+		{Title: "PUBLISHED", Min: 8, Max: 12, Ideal: 10},
+	},
 }
 
 func (m *Model) renderTable(rows []domain.Release) string {
-	badge, tag, title, author, assets, published := m.columnWidths()
+	widths := releasesTable.Layout(m.width)
+	badge, tag, title, author, assets, published := widths[0], widths[1], widths[2], widths[3], widths[4], widths[5]
 	var b strings.Builder
-	header := joinRow(
-		padRight(truncRune("", badge), badge),
-		padRight(truncRune("TAG", tag), tag),
-		padRight(truncRune("TITLE", title), title),
-		padRight(truncRune("AUTHOR", author), author),
-		padRight(truncRune("ASSETS", assets), assets),
-		padRight(truncRune("PUBLISHED", published), published),
-	)
+	header := releasesTable.Header(widths, func(s string) string { return s })
 	b.WriteString(m.theme.SectionLabel(m.truncate(header)))
 	b.WriteByte('\n')
 
 	latestID := m.latestID()
 	now := m.params.Now()
 	for i, r := range rows {
-		badgeCell := padToVisible(m.renderBadge(r, latestID), badge)
+		badgeCell := widgets.PadToVisible(m.renderBadge(r, latestID), badge)
 		pub := "—"
 		if r.PublishedAt != nil {
-			pub = humanizeAgo(now.Sub(*r.PublishedAt))
+			pub = widgets.HumanizeAgo(now.Sub(*r.PublishedAt))
 		} else if r.Draft {
 			pub = "draft"
 		}
@@ -138,13 +122,13 @@ func (m *Model) renderTable(rows []domain.Release) string {
 		if titleText == "" {
 			titleText = r.TagName
 		}
-		row := joinRow(
+		row := widgets.JoinCells(
 			badgeCell,
-			padRight(truncRune(r.TagName, tag), tag),
-			padRight(truncRune(titleText, title), title),
-			padRight(truncRune(r.Author.Login, author), author),
-			padRight(truncRune(fmt.Sprintf("%d", len(r.Assets)), assets), assets),
-			padRight(truncRune(pub, published), published),
+			widgets.PadRight(widgets.TruncRune(r.TagName, tag), tag),
+			widgets.PadRight(widgets.TruncRune(titleText, title), title),
+			widgets.PadRight(widgets.TruncRune(r.Author.Login, author), author),
+			widgets.PadRight(widgets.TruncRune(fmt.Sprintf("%d", len(r.Assets)), assets), assets),
+			widgets.PadRight(widgets.TruncRune(pub, published), published),
 		)
 		if i == m.cursor {
 			row = m.theme.SelectedRow(row, m.width)
@@ -219,7 +203,7 @@ func (m *Model) truncate(s string) string {
 	if lipgloss.Width(s) <= m.width {
 		return s
 	}
-	return truncRune(s, m.width)
+	return widgets.TruncRune(s, m.width)
 }
 
 // errorHint maps known sentinels to user-facing hints.
@@ -246,73 +230,5 @@ func errorHint(err error) string {
 }
 
 // humanizeAgo renders a duration as e.g. "5s ago" / "3m ago" / "2h ago" / "5d ago".
-func humanizeAgo(d time.Duration) string {
-	if d < 0 {
-		d = 0
-	}
-	switch {
-	case d < time.Minute:
-		return fmt.Sprintf("%ds ago", int(d.Seconds()))
-	case d < time.Hour:
-		return fmt.Sprintf("%dm ago", int(d.Minutes()))
-	case d < 24*time.Hour:
-		return fmt.Sprintf("%dh ago", int(d.Hours()))
-	default:
-		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
-	}
-}
 
 // truncRune truncates s to n display columns, appending "…" if cut.
-func truncRune(s string, n int) string {
-	if n <= 0 {
-		return ""
-	}
-	if lipgloss.Width(s) <= n {
-		return s
-	}
-	if n == 1 {
-		return "…"
-	}
-	var b strings.Builder
-	w := 0
-	for _, r := range s {
-		rw := lipgloss.Width(string(r))
-		if w+rw > n-1 {
-			break
-		}
-		b.WriteRune(r)
-		w += rw
-	}
-	b.WriteRune('…')
-	return b.String()
-}
-
-func padRight(s string, n int) string {
-	w := lipgloss.Width(s)
-	if w >= n {
-		return s
-	}
-	return s + strings.Repeat(" ", n-w)
-}
-
-func padToVisible(s string, n int) string {
-	w := lipgloss.Width(s)
-	if w >= n {
-		return s
-	}
-	return s + strings.Repeat(" ", n-w)
-}
-
-func joinRow(cells ...string) string {
-	return strings.Join(cells, " ")
-}
-
-func clampInt(want, lo, hi int) int {
-	if want < lo {
-		want = lo
-	}
-	if hi > 0 && want > hi {
-		want = hi
-	}
-	return want
-}

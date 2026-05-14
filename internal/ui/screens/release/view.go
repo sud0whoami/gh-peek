@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
+	"github.com/sud0whoami/gh-peek/internal/ui/widgets"
 )
 
 // View implements tea.Model.
@@ -50,7 +50,7 @@ func (m *Model) statusIndicatorText() string {
 		return "⏼ off"
 	case !m.lastRefreshed.IsZero():
 		d := m.params.Now().Sub(m.lastRefreshed)
-		return "✓ " + humanizeAgo(d)
+		return "✓ " + widgets.HumanizeAgo(d)
 	default:
 		return "✓"
 	}
@@ -70,7 +70,7 @@ func (m *Model) renderSubheader() string {
 		parts = append(parts, "by "+m.rel.Author.Login)
 	}
 	if m.rel.PublishedAt != nil {
-		parts = append(parts, "published "+humanizeAgo(m.params.Now().Sub(*m.rel.PublishedAt)))
+		parts = append(parts, "published "+widgets.HumanizeAgo(m.params.Now().Sub(*m.rel.PublishedAt)))
 	}
 	parts = append(parts, fmt.Sprintf("%d assets", len(m.rel.Assets)))
 	return m.truncate(strings.Join(parts, " · "))
@@ -136,12 +136,12 @@ func (m *Model) buildNotesContent(width int) string {
 	if m.focus == focusNotes {
 		header = "▶ NOTES"
 	}
-	b.WriteString(padRight(m.theme.SectionLabel(truncRune(header, width)), width))
+	b.WriteString(widgets.PadRight(m.theme.SectionLabel(widgets.TruncRune(header, width)), width))
 	b.WriteByte('\n')
 
 	body := strings.TrimSpace(m.rel.Body)
 	if body == "" {
-		b.WriteString(padRight(m.theme.Muted(truncRune("(no release notes)", width)), width))
+		b.WriteString(widgets.PadRight(m.theme.Muted(widgets.TruncRune("(no release notes)", width)), width))
 		return b.String()
 	}
 	lines := wrapLines(body, width)
@@ -158,7 +158,7 @@ func (m *Model) buildNotesContent(width int) string {
 		end = len(lines)
 	}
 	for i := start; i < end; i++ {
-		b.WriteString(padRight(truncRune(lines[i], width), width))
+		b.WriteString(widgets.PadRight(widgets.TruncRune(lines[i], width), width))
 		if i < end-1 {
 			b.WriteByte('\n')
 		}
@@ -172,11 +172,11 @@ func (m *Model) buildAssetsContent(width int) string {
 	if m.focus == focusAssets {
 		header = "▶ ASSETS"
 	}
-	b.WriteString(padRight(m.theme.SectionLabel(truncRune(header, width)), width))
+	b.WriteString(widgets.PadRight(m.theme.SectionLabel(widgets.TruncRune(header, width)), width))
 	b.WriteByte('\n')
 
 	if len(m.rel.Assets) == 0 {
-		b.WriteString(padRight(m.theme.Muted(truncRune("(no assets)", width)), width))
+		b.WriteString(widgets.PadRight(m.theme.Muted(widgets.TruncRune("(no assets)", width)), width))
 		return b.String()
 	}
 	for i, a := range m.rel.Assets {
@@ -189,7 +189,7 @@ func (m *Model) buildAssetsContent(width int) string {
 		if i == m.assetCursor {
 			row = m.theme.SelectedRow(row, width)
 		} else {
-			row = padRight(truncRune(row, width), width)
+			row = widgets.PadRight(widgets.TruncRune(row, width), width)
 		}
 		b.WriteString(row)
 		if i < len(m.rel.Assets)-1 {
@@ -238,7 +238,7 @@ func (m *Model) truncate(s string) string {
 	if lipgloss.Width(s) <= m.width {
 		return s
 	}
-	return truncRune(s, m.width)
+	return widgets.TruncRune(s, m.width)
 }
 
 // wrapLines wraps the input string into lines that fit width display
@@ -331,22 +331,6 @@ func errorHint(err error) string {
 	}
 }
 
-func humanizeAgo(d time.Duration) string {
-	if d < 0 {
-		d = 0
-	}
-	switch {
-	case d < time.Minute:
-		return fmt.Sprintf("%ds ago", int(d.Seconds()))
-	case d < time.Hour:
-		return fmt.Sprintf("%dm ago", int(d.Minutes()))
-	case d < 24*time.Hour:
-		return fmt.Sprintf("%dh ago", int(d.Hours()))
-	default:
-		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
-	}
-}
-
 func humanizeBytes(n int64) string {
 	const (
 		kb = 1024
@@ -363,36 +347,4 @@ func humanizeBytes(n int64) string {
 	default:
 		return fmt.Sprintf("%d B", n)
 	}
-}
-
-func truncRune(s string, n int) string {
-	if n <= 0 {
-		return ""
-	}
-	if lipgloss.Width(s) <= n {
-		return s
-	}
-	if n == 1 {
-		return "…"
-	}
-	var b strings.Builder
-	w := 0
-	for _, r := range s {
-		rw := lipgloss.Width(string(r))
-		if w+rw > n-1 {
-			break
-		}
-		b.WriteRune(r)
-		w += rw
-	}
-	b.WriteRune('…')
-	return b.String()
-}
-
-func padRight(s string, n int) string {
-	w := lipgloss.Width(s)
-	if w >= n {
-		return s
-	}
-	return s + strings.Repeat(" ", n-w)
 }

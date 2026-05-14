@@ -153,8 +153,8 @@ func TestRouter_WindowSizeForwardedAndRemembered(t *testing.T) {
 	repo := routerStartup().Repo.Repo
 	updated, _ = mm.Update(runs.OpenRunMsg{RunID: 1, Repo: repo})
 	mm = updated.(*Model)
-	if got := mm.DetailScreen().Width(); got != 80 {
-		t.Fatalf("detail screen width = %d, want 80 (inherited from router)", got)
+	if got := mm.DetailScreen().Width(); got != 78 {
+		t.Fatalf("detail screen width = %d, want 78 (80 router width minus 2 frame border chars)", got)
 	}
 }
 

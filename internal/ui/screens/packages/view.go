@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"image/color"
 	"strings"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 
 	"github.com/sud0whoami/gh-peek/internal/domain"
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
+	"github.com/sud0whoami/gh-peek/internal/ui/widgets"
+	"github.com/sud0whoami/gh-peek/internal/ui/widgets/table"
 )
 
 // View implements tea.Model.
@@ -52,7 +53,7 @@ func (m *Model) statusIndicatorText() string {
 		return "⏼ off"
 	case !m.lastRefreshed.IsZero():
 		d := m.params.Now().Sub(m.lastRefreshed)
-		return "✓ " + humanizeAgo(d)
+		return "✓ " + widgets.HumanizeAgo(d)
 	default:
 		return "✓"
 	}
@@ -87,52 +88,38 @@ func (m *Model) renderBody() string {
 	return ""
 }
 
-// columnWidths computes per-column widths.
-// Columns: TYPE | NAME | VISIBILITY | VERSIONS | UPDATED
-func (m *Model) columnWidths() (typ, name, vis, versions, updated int) {
-	const sepCount = 4
-	avail := m.width - sepCount
-	if avail < 30 {
-		avail = 30
-	}
-	typ = clampInt(avail/8, 7, 11)
-	vis = clampInt(avail/10, 7, 10)
-	versions = clampInt(avail/12, 4, 8)
-	updated = clampInt(avail/8, 8, 12)
-	used := typ + vis + versions + updated
-	name = avail - used
-	if name < 8 {
-		name = 8
-	}
-	return
+// packagesTable defines the column layout for the packages list.
+var packagesTable = table.Table{
+	Cols: []table.Col{
+		{Title: "TYPE", Min: 7, Max: 11, Ideal: 11},
+		{Title: "NAME", Min: 8, Max: 80, Ideal: 56, Elastic: true},
+		{Title: "VISIBILITY", Min: 7, Max: 10, Ideal: 9},
+		{Title: "VERS", Min: 4, Max: 8, Ideal: 8},
+		{Title: "UPDATED", Min: 8, Max: 12, Ideal: 12},
+	},
 }
 
 func (m *Model) renderTable(rows []domain.Package) string {
-	typ, name, vis, versions, updated := m.columnWidths()
+	widths := packagesTable.Layout(m.width)
+	typ, name, vis, versions, updated := widths[0], widths[1], widths[2], widths[3], widths[4]
 	var b strings.Builder
-	header := joinRow(
-		padRight(truncRune("TYPE", typ), typ),
-		padRight(truncRune("NAME", name), name),
-		padRight(truncRune("VISIBILITY", vis), vis),
-		padRight(truncRune("VERS", versions), versions),
-		padRight(truncRune("UPDATED", updated), updated),
-	)
+	header := packagesTable.Header(widths, func(s string) string { return s })
 	b.WriteString(m.theme.SectionLabel(m.truncate(header)))
 	b.WriteByte('\n')
 
 	now := m.params.Now()
 	for i, p := range rows {
-		typeBadge := padToVisible(m.renderTypeBadge(p), typ)
+		typeBadge := widgets.PadToVisible(m.renderTypeBadge(p), typ)
 		upd := "—"
 		if !p.UpdatedAt.IsZero() {
-			upd = humanizeAgo(now.Sub(p.UpdatedAt))
+			upd = widgets.HumanizeAgo(now.Sub(p.UpdatedAt))
 		}
-		row := joinRow(
+		row := widgets.JoinCells(
 			typeBadge,
-			padRight(truncRune(p.Name, name), name),
-			padRight(truncRune(p.Visibility, vis), vis),
-			padRight(truncRune(fmt.Sprintf("%d", p.VersionCount), versions), versions),
-			padRight(truncRune(upd, updated), updated),
+			widgets.PadRight(widgets.TruncRune(p.Name, name), name),
+			widgets.PadRight(widgets.TruncRune(p.Visibility, vis), vis),
+			widgets.PadRight(widgets.TruncRune(fmt.Sprintf("%d", p.VersionCount), versions), versions),
+			widgets.PadRight(widgets.TruncRune(upd, updated), updated),
 		)
 		if i == m.cursor {
 			row = m.theme.SelectedRow(row, m.width)
@@ -200,7 +187,7 @@ func (m *Model) truncate(s string) string {
 	if lipgloss.Width(s) <= m.width {
 		return s
 	}
-	return truncRune(s, m.width)
+	return widgets.TruncRune(s, m.width)
 }
 
 // errorHint maps known sentinels to user-facing hints.
@@ -226,74 +213,4 @@ func errorHint(err error) string {
 	default:
 		return err.Error()
 	}
-}
-
-func humanizeAgo(d time.Duration) string {
-	if d < 0 {
-		d = 0
-	}
-	switch {
-	case d < time.Minute:
-		return fmt.Sprintf("%ds ago", int(d.Seconds()))
-	case d < time.Hour:
-		return fmt.Sprintf("%dm ago", int(d.Minutes()))
-	case d < 24*time.Hour:
-		return fmt.Sprintf("%dh ago", int(d.Hours()))
-	default:
-		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
-	}
-}
-
-func truncRune(s string, n int) string {
-	if n <= 0 {
-		return ""
-	}
-	if lipgloss.Width(s) <= n {
-		return s
-	}
-	if n == 1 {
-		return "…"
-	}
-	var b strings.Builder
-	w := 0
-	for _, r := range s {
-		rw := lipgloss.Width(string(r))
-		if w+rw > n-1 {
-			break
-		}
-		b.WriteRune(r)
-		w += rw
-	}
-	b.WriteRune('…')
-	return b.String()
-}
-
-func padRight(s string, n int) string {
-	w := lipgloss.Width(s)
-	if w >= n {
-		return s
-	}
-	return s + strings.Repeat(" ", n-w)
-}
-
-func padToVisible(s string, n int) string {
-	w := lipgloss.Width(s)
-	if w >= n {
-		return s
-	}
-	return s + strings.Repeat(" ", n-w)
-}
-
-func joinRow(cells ...string) string {
-	return strings.Join(cells, " ")
-}
-
-func clampInt(want, lo, hi int) int {
-	if want < lo {
-		want = lo
-	}
-	if hi > 0 && want > hi {
-		want = hi
-	}
-	return want
 }
