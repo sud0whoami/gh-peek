@@ -2,25 +2,24 @@ package keymap
 
 import "charm.land/bubbles/v2/key"
 
-// Releases is the set of key bindings for the releases list screen.
-type Releases struct {
-	Up           key.Binding
-	Down         key.Binding
-	Open         key.Binding
-	Search       key.Binding
-	Refresh      key.Binding
-	AutoToggle   key.Binding
-	OpenBrowse   key.Binding
-	OpenPackages key.Binding
-	Back         key.Binding
-	Help         key.Binding
-	Quit         key.Binding
-	Cancel       key.Binding
+// Packages is the set of key bindings for the packages list screen.
+type Packages struct {
+	Up         key.Binding
+	Down       key.Binding
+	Open       key.Binding
+	Search     key.Binding
+	Refresh    key.Binding
+	AutoToggle key.Binding
+	OpenBrowse key.Binding
+	Back       key.Binding
+	Help       key.Binding
+	Quit       key.Binding
+	Cancel     key.Binding
 }
 
-// DefaultReleases returns the default Releases key bindings.
-func DefaultReleases() Releases {
-	return Releases{
+// DefaultPackages returns the default Packages key bindings.
+func DefaultPackages() Packages {
+	return Packages{
 		Up: key.NewBinding(
 			key.WithKeys("up", "k"),
 			key.WithHelp("↑/k", "move up"),
@@ -31,7 +30,7 @@ func DefaultReleases() Releases {
 		),
 		Open: key.NewBinding(
 			key.WithKeys("enter"),
-			key.WithHelp("enter", "open release"),
+			key.WithHelp("enter", "open package"),
 		),
 		Search: key.NewBinding(
 			key.WithKeys("/"),
@@ -49,13 +48,9 @@ func DefaultReleases() Releases {
 			key.WithKeys("o"),
 			key.WithHelp("o", "open in browser"),
 		),
-		OpenPackages: key.NewBinding(
-			key.WithKeys("P"),
-			key.WithHelp("P", "packages"),
-		),
 		Back: key.NewBinding(
-			key.WithKeys("esc", "b", "L"),
-			key.WithHelp("esc/b/L", "back to runs"),
+			key.WithKeys("esc", "b", "P"),
+			key.WithHelp("esc/b/P", "back to runs"),
 		),
 		Help: key.NewBinding(
 			key.WithKeys("?"),
@@ -73,52 +68,42 @@ func DefaultReleases() Releases {
 }
 
 // ShortHelp returns the bindings shown in the compact one-line help.
-func (r Releases) ShortHelp() []key.Binding {
-	return []key.Binding{r.Up, r.Down, r.Open, r.Search, r.Refresh, r.AutoToggle, r.OpenBrowse, r.OpenPackages, r.Back, r.Help, r.Quit}
+func (p Packages) ShortHelp() []key.Binding {
+	return []key.Binding{p.Up, p.Down, p.Open, p.Search, p.Refresh, p.AutoToggle, p.OpenBrowse, p.Back, p.Help, p.Quit}
 }
 
-// FullHelp returns bindings grouped into rows for the expanded help
-// overlay.
-func (r Releases) FullHelp() [][]key.Binding {
+// FullHelp returns bindings grouped into rows for the expanded help overlay.
+func (p Packages) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{r.Up, r.Down, r.Open, r.OpenBrowse},
-		{r.Search, r.Cancel, r.Back},
-		{r.OpenPackages, r.Refresh, r.AutoToggle, r.Help, r.Quit},
+		{p.Up, p.Down, p.Open, p.OpenBrowse},
+		{p.Search, p.Cancel, p.Back},
+		{p.Refresh, p.AutoToggle, p.Help, p.Quit},
 	}
 }
 
-// ReleaseDetail is the set of key bindings for the release detail screen.
-type ReleaseDetail struct {
+// PackageDetail is the set of key bindings for the package detail screen.
+type PackageDetail struct {
 	Up                key.Binding
 	Down              key.Binding
-	Tab               key.Binding
-	Enter             key.Binding
 	Refresh           key.Binding
 	ToggleAutoRefresh key.Binding
 	OpenBrowser       key.Binding
+	OpenPackage       key.Binding
 	Back              key.Binding
 	Help              key.Binding
 	Quit              key.Binding
 }
 
-// DefaultReleaseDetail returns the default ReleaseDetail key bindings.
-func DefaultReleaseDetail() ReleaseDetail {
-	return ReleaseDetail{
+// DefaultPackageDetail returns the default PackageDetail key bindings.
+func DefaultPackageDetail() PackageDetail {
+	return PackageDetail{
 		Up: key.NewBinding(
 			key.WithKeys("up", "k"),
-			key.WithHelp("↑/k", "scroll up"),
+			key.WithHelp("↑/k", "move up"),
 		),
 		Down: key.NewBinding(
 			key.WithKeys("down", "j"),
-			key.WithHelp("↓/j", "scroll down"),
-		),
-		Tab: key.NewBinding(
-			key.WithKeys("tab"),
-			key.WithHelp("tab", "focus notes/assets"),
-		),
-		Enter: key.NewBinding(
-			key.WithKeys("enter"),
-			key.WithHelp("enter", "open asset"),
+			key.WithHelp("↓/j", "move down"),
 		),
 		Refresh: key.NewBinding(
 			key.WithKeys("r"),
@@ -130,7 +115,11 @@ func DefaultReleaseDetail() ReleaseDetail {
 		),
 		OpenBrowser: key.NewBinding(
 			key.WithKeys("o"),
-			key.WithHelp("o", "open in browser"),
+			key.WithHelp("o", "open version"),
+		),
+		OpenPackage: key.NewBinding(
+			key.WithKeys("O"),
+			key.WithHelp("O", "open package"),
 		),
 		Back: key.NewBinding(
 			key.WithKeys("esc", "b"),
@@ -148,15 +137,15 @@ func DefaultReleaseDetail() ReleaseDetail {
 }
 
 // ShortHelp returns the bindings shown in the compact one-line help.
-func (r ReleaseDetail) ShortHelp() []key.Binding {
-	return []key.Binding{r.Up, r.Down, r.Tab, r.Enter, r.Refresh, r.ToggleAutoRefresh, r.OpenBrowser, r.Back, r.Help, r.Quit}
+func (p PackageDetail) ShortHelp() []key.Binding {
+	return []key.Binding{p.Up, p.Down, p.Refresh, p.ToggleAutoRefresh, p.OpenBrowser, p.OpenPackage, p.Back, p.Help, p.Quit}
 }
 
 // FullHelp returns bindings grouped into rows for the expanded help overlay.
-func (r ReleaseDetail) FullHelp() [][]key.Binding {
+func (p PackageDetail) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{r.Up, r.Down, r.Tab, r.Enter},
-		{r.OpenBrowser, r.Back},
-		{r.Refresh, r.ToggleAutoRefresh, r.Help, r.Quit},
+		{p.Up, p.Down, p.OpenBrowser, p.OpenPackage},
+		{p.Back},
+		{p.Refresh, p.ToggleAutoRefresh, p.Help, p.Quit},
 	}
 }

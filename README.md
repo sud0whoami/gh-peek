@@ -25,6 +25,10 @@ Open it from a checkout and it picks the right starting view:
   (`latest` / `pre` / `draft`), substring search, release notes and
   asset table in the detail view, and `enter` on an asset opens its
   download URL in the browser.
+- Packages browser (`P` from the runs list) covering all six GitHub
+  Packages types (container, npm, maven, rubygems, nuget, docker),
+  with substring search, semantic type badges, and a per-package
+  versions list (TAGS column shown for container/docker).
 - Auto-refresh on visible screens with active runs, paused while typing
   in a search input.
 - Friendly bootstrap errors (`gh` missing, not a git repo, no GitHub
@@ -125,7 +129,7 @@ The full key map lives in
 
 - Runs list: `↑/↓` move · `enter` open · `/` search · `a` active-only ·
   `b` cycle view · `r` refresh · `R` toggle auto-refresh · `o` browser ·
-  `L` releases · `?` help · `q` quit
+  `L` releases · `P` packages · `?` help · `q` quit
 - Run detail: `↑/↓`/`j`/`k` move · `tab` switch pane · `enter` open job log · `o` browser ·
   `r` refresh · `R` toggle auto-refresh · `?` help · `esc`/`b` back · `q` quit
 - Log viewer: `↑/↓`/`j`/`k` cursor · `PgUp`/`PgDn` page · `g`/`G` top/bottom ·
@@ -137,6 +141,10 @@ The full key map lives in
   `R` toggle auto-refresh · `o` browser · `esc`/`b`/`L` back to runs · `?` help · `q` quit
 - Release detail: `↑/↓`/`j`/`k` scroll / move · `tab` switch pane (notes / assets) ·
   `enter` open focused asset in browser · `o` open release page ·
+  `r` refresh · `R` toggle auto-refresh · `?` help · `esc`/`b` back · `q` quit
+- Packages list: `↑/↓` move · `enter` open · `/` search · `r` refresh ·
+  `R` toggle auto-refresh · `o` browser · `esc`/`b`/`P` back to runs · `?` help · `q` quit
+- Package detail: `↑/↓` move · `o` open focused version · `O` open package page ·
   `r` refresh · `R` toggle auto-refresh · `?` help · `esc`/`b` back · `q` quit
 
 ## Configuration

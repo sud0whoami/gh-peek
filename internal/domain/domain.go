@@ -13,6 +13,10 @@ type RepoRef struct {
 	Host  string
 	Owner string
 	Name  string
+	// OwnerType is "Organization" or "User", populated at bootstrap.
+	// Empty string means unknown; callers should default to org-first with
+	// user fallback.
+	OwnerType string
 }
 
 // RepoContext bundles the local + remote facts about the repository
@@ -147,6 +151,74 @@ type ReleaseAsset struct {
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
 	BrowserURL    string
+}
+
+// PackageType represents a GitHub Package ecosystem type.
+type PackageType string
+
+const (
+	PackageTypeContainer PackageType = "container"
+	PackageTypeNPM       PackageType = "npm"
+	PackageTypeMaven     PackageType = "maven"
+	PackageTypeRubyGems  PackageType = "rubygems"
+	PackageTypeNuGet     PackageType = "nuget"
+	PackageTypeDocker    PackageType = "docker"
+)
+
+// AllPackageTypes returns all supported GitHub Package types.
+func AllPackageTypes() []PackageType {
+	return []PackageType{
+		PackageTypeContainer,
+		PackageTypeNPM,
+		PackageTypeMaven,
+		PackageTypeRubyGems,
+		PackageTypeNuGet,
+		PackageTypeDocker,
+	}
+}
+
+// Package is a single GitHub Package.
+type Package struct {
+	ID           int64
+	Name         string
+	Type         PackageType
+	Visibility   string
+	Owner        PackageOwner
+	Repository   *PackageRepoRef
+	URL          string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	VersionCount int
+}
+
+// PackageOwner is the user or org that owns the package.
+type PackageOwner struct {
+	Login   string
+	Type    string
+	HTMLURL string
+}
+
+// PackageRepoRef is a slim reference to the repository a package is linked to.
+type PackageRepoRef struct {
+	Name     string
+	FullName string
+}
+
+// PackageVersion is a single version of a GitHub Package.
+type PackageVersion struct {
+	ID             int64
+	Name           string
+	URL            string
+	PackageHTMLURL string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	Metadata       PackageVersionMetadata
+}
+
+// PackageVersionMetadata holds type-specific metadata for a package version.
+type PackageVersionMetadata struct {
+	ContainerTags []string
+	PackageType   PackageType
 }
 
 // SemanticStatus is the UI-facing status for a run, job, or step.

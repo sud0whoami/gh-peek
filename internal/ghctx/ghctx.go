@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"strings"
 
@@ -88,7 +89,7 @@ func (a repoAdapter) Owner() string { return a.r.Owner }
 func (a repoAdapter) Name() string  { return a.r.Name }
 
 // CurrentRepo resolves the GitHub repository for the working directory.
-func (g *GH) CurrentRepo(_ context.Context) (domain.RepoRef, error) {
+func (g *GH) CurrentRepo(ctx context.Context) (domain.RepoRef, error) {
 	if g.Repo == nil {
 		return domain.RepoRef{}, fmt.Errorf("ghctx: Repo function not configured")
 	}
@@ -96,7 +97,41 @@ func (g *GH) CurrentRepo(_ context.Context) (domain.RepoRef, error) {
 	if err != nil {
 		return domain.RepoRef{}, fmt.Errorf("%w: %v", ErrNoGitHubRepo, err)
 	}
-	return domain.RepoRef{Host: r.Host(), Owner: r.Owner(), Name: r.Name()}, nil
+	ref := domain.RepoRef{Host: r.Host(), Owner: r.Owner(), Name: r.Name()}
+
+	// Best-effort: fetch owner type so the Packages client can route
+	// to the correct /orgs vs /users endpoint.
+	ownerType, err := g.fetchOwnerType(ctx, ref)
+	if err != nil {
+		// Non-fatal — default to empty string; callers fall back gracefully.
+		slog.Warn("ghctx: could not determine owner type", "err", err)
+	}
+	ref.OwnerType = ownerType
+	return ref, nil
+}
+
+// ownerJSON mirrors the JSON shape of `gh repo view --json owner`.
+type ownerJSON struct {
+	Owner struct {
+		Type string `json:"type"`
+	} `json:"owner"`
+}
+
+// fetchOwnerType calls `gh repo view --json owner` and returns the owner.type field.
+func (g *GH) fetchOwnerType(ctx context.Context, repo domain.RepoRef) (string, error) {
+	target := repo.Owner + "/" + repo.Name
+	stdout, stderr, err := g.exec(ctx,
+		"repo", "view", target,
+		"--json", "owner",
+	)
+	if err != nil {
+		return "", fmt.Errorf("gh repo view owner: %w (stderr: %s)", err, strings.TrimSpace(stderr.String()))
+	}
+	var raw ownerJSON
+	if err := json.Unmarshal(stdout.Bytes(), &raw); err != nil {
+		return "", fmt.Errorf("gh repo view owner: parse json: %w", err)
+	}
+	return raw.Owner.Type, nil
 }
 
 // DefaultBranch returns the repository's default branch name via

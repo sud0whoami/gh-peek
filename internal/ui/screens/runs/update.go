@@ -159,6 +159,8 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case "L":
 		return m, func() tea.Msg { return OpenReleasesMsg{} }
+	case "P":
+		return m, func() tea.Msg { return OpenPackagesMsg{} }
 	}
 	return m, nil
 }

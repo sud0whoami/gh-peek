@@ -1,4 +1,4 @@
-package releases
+package packages
 
 import (
 	"context"
@@ -11,14 +11,12 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
 )
 
-// defaultTickInterval is the default auto-refresh polling cadence for releases.
-// Releases change rarely so we poll less frequently than runs.
+// defaultTickInterval is the default auto-refresh polling cadence.
+// Packages change rarely so we poll less frequently than runs.
 const defaultTickInterval = 60 * time.Second
 
 // Init implements tea.Model.
-func (m *Model) Init() tea.Cmd {
-	return m.fetchCmd()
-}
+func (m *Model) Init() tea.Cmd { return m.fetchCmd() }
 
 // Update implements tea.Model.
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -27,23 +25,20 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.width = msg.Width
 		m.height = msg.Height
 		return m, nil
-
-	case releasesLoadedMsg:
+	case packagesLoadedMsg:
 		return m.handleLoaded(msg), m.scheduleTick()
-
 	case tickMsg:
 		return m.handleTick()
-
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 	}
 	return m, nil
 }
 
-func (m *Model) handleLoaded(msg releasesLoadedMsg) *Model {
+func (m *Model) handleLoaded(msg packagesLoadedMsg) *Model {
 	m.loading = false
 	if msg.Err != nil {
-		if len(m.releases) > 0 {
+		if len(m.packages) > 0 {
 			m.refreshErr = msg.Err
 			return m
 		}
@@ -54,18 +49,24 @@ func (m *Model) handleLoaded(msg releasesLoadedMsg) *Model {
 	m.refreshErr = nil
 	if msg.Result.NotModified {
 		m.lastRefreshed = m.params.Now()
-		if msg.Result.ETag != "" {
-			m.lastETag = msg.Result.ETag
+		for k, v := range msg.Result.ETags {
+			if v != "" {
+				m.lastETags[k] = v
+			}
 		}
 		return m
 	}
-	m.releases = msg.Result.Releases
-	m.lastETag = msg.Result.ETag
+	m.packages = msg.Result.Packages
+	for k, v := range msg.Result.ETags {
+		if v != "" {
+			m.lastETags[k] = v
+		}
+	}
 	m.lastRefreshed = m.params.Now()
 	if m.cursor >= len(m.visible()) {
 		m.cursor = 0
 	}
-	if len(m.releases) == 0 {
+	if len(m.packages) == 0 {
 		m.state = StateEmpty
 	} else {
 		m.state = StateReady
@@ -83,7 +84,6 @@ func (m *Model) handleTick() (tea.Model, tea.Cmd) {
 func (m *Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	key := msg.String()
 
-	// While the search input is focused, route most keys to it.
 	if m.input.Focused() {
 		switch key {
 		case "esc":
@@ -107,10 +107,8 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch key {
 	case "q", "ctrl+c":
 		return m, tea.Quit
-	case "esc", "b", "L":
+	case "esc", "b", "P":
 		return m, func() tea.Msg { return BackToRunsMsg{} }
-	case "P":
-		return m, func() tea.Msg { return OpenPackagesMsg{} }
 	case "up", "k":
 		if m.cursor > 0 {
 			m.cursor--
@@ -126,9 +124,9 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if len(v) == 0 {
 			return m, nil
 		}
-		rel := v[m.cursor]
+		pkg := v[m.cursor]
 		repo := m.params.Repo
-		return m, func() tea.Msg { return OpenReleaseMsg{ReleaseID: rel.ID, Repo: repo, Release: rel} }
+		return m, func() tea.Msg { return OpenPackageMsg{PackageID: pkg.ID, Repo: repo, Package: pkg} }
 	case "o":
 		v := m.visible()
 		if len(v) == 0 {
@@ -155,19 +153,21 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// fetchCmd returns a Cmd that performs a single ListReleases call and
-// emits the result as a releasesLoadedMsg.
+// fetchCmd returns a Cmd that performs a single ListPackages call.
 func (m *Model) fetchCmd() tea.Cmd {
 	repo := m.params.Repo
 	client := m.params.Client
-	f := githubapi.ListReleasesFilter{IfNoneMatch: m.lastETag, PerPage: 50}
+	inm := make(map[domain.PackageType]string, len(m.lastETags))
+	for k, v := range m.lastETags {
+		inm[k] = v
+	}
+	f := githubapi.ListPackagesFilter{IfNoneMatch: inm, PerPage: 50}
 	return func() tea.Msg {
-		r, err := client.ListReleases(context.Background(), repo, f)
-		return releasesLoadedMsg{Result: r, Err: err}
+		r, err := client.ListPackages(context.Background(), repo, f)
+		return packagesLoadedMsg{Result: r, Err: err}
 	}
 }
 
-// scheduleTick returns a tickCmd if auto-refresh is on.
 func (m *Model) scheduleTick() tea.Cmd {
 	if !m.autoRefresh {
 		return nil
@@ -175,34 +175,22 @@ func (m *Model) scheduleTick() tea.Cmd {
 	return m.tickCmd()
 }
 
-// tickCmd schedules a single tickMsg after the model's configured interval.
 func (m *Model) tickCmd() tea.Cmd {
 	return tea.Tick(m.tickInterval, func(time.Time) tea.Msg { return tickMsg{} })
 }
 
-// visible returns the rows after applying the search filter.
-func (m *Model) visible() []domain.Release {
+// visible applies the search filter to the package list.
+func (m *Model) visible() []domain.Package {
 	q := strings.ToLower(strings.TrimSpace(m.input.Value()))
-	out := make([]domain.Release, 0, len(m.releases))
-	for _, r := range m.releases {
+	out := make([]domain.Package, 0, len(m.packages))
+	for _, p := range m.packages {
 		if q != "" {
-			hay := strings.ToLower(r.TagName + " " + r.Name + " " + r.Author.Login)
+			hay := strings.ToLower(p.Name + " " + string(p.Type) + " " + p.Visibility)
 			if !strings.Contains(hay, q) {
 				continue
 			}
 		}
-		out = append(out, r)
+		out = append(out, p)
 	}
 	return out
-}
-
-// latestID returns the ID of the first non-draft, non-prerelease entry,
-// or 0 when none exist. Used to mark a row with the "latest" badge.
-func (m *Model) latestID() int64 {
-	for _, r := range m.releases {
-		if !r.Draft && !r.Prerelease {
-			return r.ID
-		}
-	}
-	return 0
 }
