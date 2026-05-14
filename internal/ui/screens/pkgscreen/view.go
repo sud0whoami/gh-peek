@@ -100,8 +100,13 @@ func (m *Model) renderVersions() string {
 	createdW := clampInt(width/8, 8, 12)
 	var nameW, tagsW int
 	if isContainer {
-		tagsW = clampInt(width/3, 12, 32)
-		nameW = width - createdW - tagsW - 2
+		// Container/docker version "names" are sha256 digests; we
+		// shorten them to "sha256:" + 12 hex chars (= 19 runes).
+		nameW = 20
+		tagsW = width - createdW - nameW - 2
+		if tagsW < 12 {
+			tagsW = 12
+		}
 	} else {
 		nameW = width - createdW - 1
 	}
@@ -125,7 +130,11 @@ func (m *Model) renderVersions() string {
 		if !v.CreatedAt.IsZero() {
 			created = humanizeAgo(now.Sub(v.CreatedAt))
 		}
-		row := padRight(truncRune(v.Name, nameW), nameW)
+		name := v.Name
+		if isContainer {
+			name = shortenDigest(name)
+		}
+		row := padRight(truncRune(name, nameW), nameW)
 		if isContainer {
 			tags := strings.Join(v.Metadata.ContainerTags, ", ")
 			row = row + " " + padRight(truncRune(tags, tagsW), tagsW)
@@ -140,6 +149,17 @@ func (m *Model) renderVersions() string {
 		}
 	}
 	return b.String()
+}
+
+// shortenDigest collapses a "sha256:<64-hex>" digest to a short
+// "sha256:<first-12>" form for display. Other strings are returned
+// unchanged.
+func shortenDigest(s string) string {
+	const prefix = "sha256:"
+	if strings.HasPrefix(s, prefix) && len(s) >= len(prefix)+12 {
+		return prefix + s[len(prefix):len(prefix)+12]
+	}
+	return s
 }
 
 func (m *Model) renderFooter() string {

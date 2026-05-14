@@ -112,3 +112,6 @@ type OpenInBrowserMsg struct {
 
 // BackToRunsMsg asks the parent to return to the runs screen.
 type BackToRunsMsg struct{}
+
+// OpenPackagesMsg asks the parent to switch to the packages list screen.
+type OpenPackagesMsg struct{}

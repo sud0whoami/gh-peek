@@ -4,17 +4,18 @@ import "charm.land/bubbles/v2/key"
 
 // Releases is the set of key bindings for the releases list screen.
 type Releases struct {
-	Up         key.Binding
-	Down       key.Binding
-	Open       key.Binding
-	Search     key.Binding
-	Refresh    key.Binding
-	AutoToggle key.Binding
-	OpenBrowse key.Binding
-	Back       key.Binding
-	Help       key.Binding
-	Quit       key.Binding
-	Cancel     key.Binding
+	Up           key.Binding
+	Down         key.Binding
+	Open         key.Binding
+	Search       key.Binding
+	Refresh      key.Binding
+	AutoToggle   key.Binding
+	OpenBrowse   key.Binding
+	OpenPackages key.Binding
+	Back         key.Binding
+	Help         key.Binding
+	Quit         key.Binding
+	Cancel       key.Binding
 }
 
 // DefaultReleases returns the default Releases key bindings.
@@ -48,6 +49,10 @@ func DefaultReleases() Releases {
 			key.WithKeys("o"),
 			key.WithHelp("o", "open in browser"),
 		),
+		OpenPackages: key.NewBinding(
+			key.WithKeys("P"),
+			key.WithHelp("P", "packages"),
+		),
 		Back: key.NewBinding(
 			key.WithKeys("esc", "b", "L"),
 			key.WithHelp("esc/b/L", "back to runs"),
@@ -69,7 +74,7 @@ func DefaultReleases() Releases {
 
 // ShortHelp returns the bindings shown in the compact one-line help.
 func (r Releases) ShortHelp() []key.Binding {
-	return []key.Binding{r.Up, r.Down, r.Open, r.Search, r.Refresh, r.AutoToggle, r.OpenBrowse, r.Back, r.Help, r.Quit}
+	return []key.Binding{r.Up, r.Down, r.Open, r.Search, r.Refresh, r.AutoToggle, r.OpenBrowse, r.OpenPackages, r.Back, r.Help, r.Quit}
 }
 
 // FullHelp returns bindings grouped into rows for the expanded help
@@ -78,7 +83,7 @@ func (r Releases) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{r.Up, r.Down, r.Open, r.OpenBrowse},
 		{r.Search, r.Cancel, r.Back},
-		{r.Refresh, r.AutoToggle, r.Help, r.Quit},
+		{r.OpenPackages, r.Refresh, r.AutoToggle, r.Help, r.Quit},
 	}
 }
 

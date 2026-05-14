@@ -254,28 +254,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case runs.OpenPackagesMsg:
-		if m.params == nil {
-			return m, nil
-		}
-		pc := m.packagesClient()
-		if pc == nil {
-			return m, nil
-		}
-		if m.packagesScreen == nil {
-			m.packagesScreen = packages.New(packages.Params{
-				Repo:         m.params.Startup.Repo.Repo,
-				Client:       pc,
-				Now:          m.params.Now,
-				Width:        m.width,
-				Height:       m.height,
-				AutoRefresh:  m.params.AutoRefresh,
-				TickInterval: m.params.TickInterval,
-			})
-			m.active = activePackagesList
-			return m, m.packagesScreen.Init()
-		}
-		m.active = activePackagesList
-		return m, nil
+		return m.openPackagesList()
+
+	case releases.OpenPackagesMsg:
+		return m.openPackagesList()
 
 	case packages.OpenPackageMsg:
 		if m.params == nil {
@@ -463,4 +445,31 @@ func (m *Model) packagesClient() githubapi.PackagesClient {
 		return pc
 	}
 	return nil
+}
+
+// openPackagesList lazily constructs (or restores) the packages list
+// screen and switches to it.
+func (m *Model) openPackagesList() (tea.Model, tea.Cmd) {
+	if m.params == nil {
+		return m, nil
+	}
+	pc := m.packagesClient()
+	if pc == nil {
+		return m, nil
+	}
+	if m.packagesScreen == nil {
+		m.packagesScreen = packages.New(packages.Params{
+			Repo:         m.params.Startup.Repo.Repo,
+			Client:       pc,
+			Now:          m.params.Now,
+			Width:        m.width,
+			Height:       m.height,
+			AutoRefresh:  m.params.AutoRefresh,
+			TickInterval: m.params.TickInterval,
+		})
+		m.active = activePackagesList
+		return m, m.packagesScreen.Init()
+	}
+	m.active = activePackagesList
+	return m, nil
 }
