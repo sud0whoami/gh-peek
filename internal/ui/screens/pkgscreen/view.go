@@ -11,6 +11,7 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/domain"
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
 	"github.com/sud0whoami/gh-peek/internal/ui/widgets"
+	"github.com/sud0whoami/gh-peek/internal/ui/widgets/table"
 )
 
 // View implements tea.Model.
@@ -89,63 +90,79 @@ func (m *Model) renderBody() string {
 	return m.renderVersions()
 }
 
+// containerTable defines columns for container/docker versions: NAME (fixed sha256) | TAGS (elastic, capped) | CREATED
+var containerTable = table.Table{
+	Cols: []table.Col{
+		{Title: "NAME", Min: 19, Max: 20, Ideal: 20},
+		{Title: "TAGS", Min: 12, Max: 32, Ideal: 32, Elastic: true},
+		{Title: "CREATED", Min: 8, Max: 12, Ideal: 12},
+	},
+}
+
+// versionTable defines columns for non-container versions: NAME (elastic) | CREATED
+var versionTable = table.Table{
+	Cols: []table.Col{
+		{Title: "NAME", Min: 12, Max: 120, Ideal: 60, Elastic: true},
+		{Title: "CREATED", Min: 8, Max: 12, Ideal: 12},
+	},
+}
+
 // renderVersions lists the package versions in a single pane.
 // Columns: NAME | TAGS (containers only) | CREATED
 func (m *Model) renderVersions() string {
 	isContainer := m.pkg.Type == domain.PackageTypeContainer || m.pkg.Type == domain.PackageTypeDocker
-	width := m.width
-	if width < 30 {
-		width = 30
-	}
-	createdW := widgets.Clamp(width/8, 8, 12)
-	var nameW, tagsW int
-	if isContainer {
-		// Container/docker version "names" are sha256 digests; we
-		// shorten them to "sha256:" + 12 hex chars (= 19 runes).
-		nameW = 20
-		tagsW = width - createdW - nameW - 2
-		if tagsW < 12 {
-			tagsW = 12
-		}
-	} else {
-		nameW = width - createdW - 1
-	}
-	if nameW < 12 {
-		nameW = 12
-	}
 
 	var b strings.Builder
-	header := widgets.TruncRune("NAME", nameW)
-	header = widgets.PadRight(header, nameW)
 	if isContainer {
-		header = header + " " + widgets.PadRight(widgets.TruncRune("TAGS", tagsW), tagsW)
-	}
-	header = header + " " + widgets.PadRight(widgets.TruncRune("CREATED", createdW), createdW)
-	b.WriteString(m.theme.SectionLabel(m.truncate(header)))
-	b.WriteByte('\n')
-
-	now := m.params.Now()
-	for i, v := range m.versions {
-		created := "—"
-		if !v.CreatedAt.IsZero() {
-			created = widgets.HumanizeAgo(now.Sub(v.CreatedAt))
-		}
-		name := v.Name
-		if isContainer {
-			name = shortenDigest(name)
-		}
-		row := widgets.PadRight(widgets.TruncRune(name, nameW), nameW)
-		if isContainer {
+		widths := containerTable.Layout(m.width)
+		nameW, tagsW, createdW := widths[0], widths[1], widths[2]
+		header := containerTable.Header(widths, func(s string) string { return s })
+		b.WriteString(m.theme.SectionLabel(m.truncate(header)))
+		b.WriteByte('\n')
+		now := m.params.Now()
+		for i, v := range m.versions {
+			created := "—"
+			if !v.CreatedAt.IsZero() {
+				created = widgets.HumanizeAgo(now.Sub(v.CreatedAt))
+			}
+			name := shortenDigest(v.Name)
 			tags := strings.Join(v.Metadata.ContainerTags, ", ")
-			row = row + " " + widgets.PadRight(widgets.TruncRune(tags, tagsW), tagsW)
+			row := widgets.JoinCells(
+				widgets.PadRight(widgets.TruncRune(name, nameW), nameW),
+				widgets.PadRight(widgets.TruncRune(tags, tagsW), tagsW),
+				widgets.PadRight(widgets.TruncRune(created, createdW), createdW),
+			)
+			if i == m.cursor {
+				row = m.theme.SelectedRow(row, m.width)
+			}
+			b.WriteString(row)
+			if i < len(m.versions)-1 {
+				b.WriteByte('\n')
+			}
 		}
-		row = row + " " + widgets.PadRight(widgets.TruncRune(created, createdW), createdW)
-		if i == m.cursor {
-			row = m.theme.SelectedRow(row, m.width)
-		}
-		b.WriteString(row)
-		if i < len(m.versions)-1 {
-			b.WriteByte('\n')
+	} else {
+		widths := versionTable.Layout(m.width)
+		nameW, createdW := widths[0], widths[1]
+		header := versionTable.Header(widths, func(s string) string { return s })
+		b.WriteString(m.theme.SectionLabel(m.truncate(header)))
+		b.WriteByte('\n')
+		now := m.params.Now()
+		for i, v := range m.versions {
+			created := "—"
+			if !v.CreatedAt.IsZero() {
+				created = widgets.HumanizeAgo(now.Sub(v.CreatedAt))
+			}
+			row := widgets.JoinCells(
+				widgets.PadRight(widgets.TruncRune(v.Name, nameW), nameW),
+				widgets.PadRight(widgets.TruncRune(created, createdW), createdW),
+			)
+			if i == m.cursor {
+				row = m.theme.SelectedRow(row, m.width)
+			}
+			b.WriteString(row)
+			if i < len(m.versions)-1 {
+				b.WriteByte('\n')
+			}
 		}
 	}
 	return b.String()

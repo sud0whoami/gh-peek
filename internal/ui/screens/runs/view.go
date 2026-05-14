@@ -10,6 +10,7 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/domain"
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
 	"github.com/sud0whoami/gh-peek/internal/ui/widgets"
+	"github.com/sud0whoami/gh-peek/internal/ui/widgets/table"
 )
 
 // View implements tea.Model.
@@ -110,48 +111,23 @@ func (m *Model) renderBody() string {
 	return ""
 }
 
-// columnWidths computes the per-column widths so the row fits in the
-// available width. Status is fixed at the badge width to avoid having
-// to truncate ANSI-styled content.
-func (m *Model) columnWidths() (wf, title, branch, event, status, updated int) {
-	const sepCount = 5
-	const statusCol = 14 // "[ ✓ success ]" + 1 trailing pad
-	avail := m.width - sepCount
-	if avail < 30 {
-		avail = 30
-	}
-	status = statusCol
-	rest := avail - status
-	event = widgets.Clamp(rest/8, 5, 8)
-	updated = widgets.Clamp(rest/8, 6, 10)
-	branch = widgets.Clamp(rest/4, 6, 18)
-	used := event + updated + branch
-	rem := rest - used
-	if rem < 8 {
-		rem = 8
-	}
-	wf = rem / 3
-	if wf < 4 {
-		wf = 4
-	}
-	title = rem - wf
-	if title < 4 {
-		title = 4
-	}
-	return
+// runsTable defines the column layout for the runs list.
+var runsTable = table.Table{
+	Cols: []table.Col{
+		{Title: "WORKFLOW", Min: 4, Max: 30, Ideal: 15},
+		{Title: "TITLE", Min: 4, Max: 60, Ideal: 30, Elastic: true},
+		{Title: "BRANCH", Min: 6, Max: 18, Ideal: 18},
+		{Title: "EVENT", Min: 5, Max: 8, Ideal: 8},
+		{Title: "STATUS", Min: 14, Max: 14, Ideal: 14}, // fixed badge width
+		{Title: "UPDATED", Min: 6, Max: 10, Ideal: 10},
+	},
 }
 
 func (m *Model) renderTable(rows []domain.WorkflowRun) string {
-	wf, title, branch, event, status, updated := m.columnWidths()
+	widths := runsTable.Layout(m.width)
+	wf, title, branch, event, status, updated := widths[0], widths[1], widths[2], widths[3], widths[4], widths[5]
 	var b strings.Builder
-	header := widgets.JoinCells(
-		widgets.PadRight(widgets.TruncRune("WORKFLOW", wf), wf),
-		widgets.PadRight(widgets.TruncRune("TITLE", title), title),
-		widgets.PadRight(widgets.TruncRune("BRANCH", branch), branch),
-		widgets.PadRight(widgets.TruncRune("EVENT", event), event),
-		widgets.PadRight(widgets.TruncRune("STATUS", status), status),
-		widgets.PadRight(widgets.TruncRune("UPDATED", updated), updated),
-	)
+	header := runsTable.Header(widths, func(s string) string { return s })
 	b.WriteString(m.theme.SectionLabel(m.truncate(header)))
 	b.WriteByte('\n')
 

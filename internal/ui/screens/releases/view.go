@@ -12,6 +12,7 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/domain"
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
 	"github.com/sud0whoami/gh-peek/internal/ui/widgets"
+	"github.com/sud0whoami/gh-peek/internal/ui/widgets/table"
 )
 
 // View implements tea.Model.
@@ -87,40 +88,23 @@ func (m *Model) renderBody() string {
 	return ""
 }
 
-// columnWidths computes the per-column widths.
-// Columns: BADGE | TAG | TITLE | AUTHOR | ASSETS | PUBLISHED
-func (m *Model) columnWidths() (badge, tag, title, author, assets, published int) {
-	const sepCount = 5
-	const badgeCol = 10 // "[ latest ]" is 10 visible cells (currently widest badge)
-	avail := m.width - sepCount
-	if avail < 30 {
-		avail = 30
-	}
-	badge = badgeCol
-	rest := avail - badge
-	tag = widgets.Clamp(rest/6, 8, 16)
-	author = widgets.Clamp(rest/8, 6, 14)
-	assets = widgets.Clamp(rest/12, 6, 8)
-	published = widgets.Clamp(rest/8, 8, 12)
-	used := tag + author + assets + published
-	title = rest - used
-	if title < 8 {
-		title = 8
-	}
-	return
+// releasesTable defines the column layout for the releases list.
+var releasesTable = table.Table{
+	Cols: []table.Col{
+		{Title: "", Min: 10, Max: 10, Ideal: 10}, // badge (fixed)
+		{Title: "TAG", Min: 8, Max: 16, Ideal: 14},
+		{Title: "TITLE", Min: 8, Max: 80, Ideal: 44, Elastic: true},
+		{Title: "AUTHOR", Min: 6, Max: 14, Ideal: 10},
+		{Title: "ASSETS", Min: 6, Max: 8, Ideal: 7},
+		{Title: "PUBLISHED", Min: 8, Max: 12, Ideal: 10},
+	},
 }
 
 func (m *Model) renderTable(rows []domain.Release) string {
-	badge, tag, title, author, assets, published := m.columnWidths()
+	widths := releasesTable.Layout(m.width)
+	badge, tag, title, author, assets, published := widths[0], widths[1], widths[2], widths[3], widths[4], widths[5]
 	var b strings.Builder
-	header := widgets.JoinCells(
-		widgets.PadRight(widgets.TruncRune("", badge), badge),
-		widgets.PadRight(widgets.TruncRune("TAG", tag), tag),
-		widgets.PadRight(widgets.TruncRune("TITLE", title), title),
-		widgets.PadRight(widgets.TruncRune("AUTHOR", author), author),
-		widgets.PadRight(widgets.TruncRune("ASSETS", assets), assets),
-		widgets.PadRight(widgets.TruncRune("PUBLISHED", published), published),
-	)
+	header := releasesTable.Header(widths, func(s string) string { return s })
 	b.WriteString(m.theme.SectionLabel(m.truncate(header)))
 	b.WriteByte('\n')
 

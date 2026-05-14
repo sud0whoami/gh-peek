@@ -12,6 +12,7 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/domain"
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
 	"github.com/sud0whoami/gh-peek/internal/ui/widgets"
+	"github.com/sud0whoami/gh-peek/internal/ui/widgets/table"
 )
 
 // View implements tea.Model.
@@ -87,36 +88,22 @@ func (m *Model) renderBody() string {
 	return ""
 }
 
-// columnWidths computes per-column widths.
-// Columns: TYPE | NAME | VISIBILITY | VERSIONS | UPDATED
-func (m *Model) columnWidths() (typ, name, vis, versions, updated int) {
-	const sepCount = 4
-	avail := m.width - sepCount
-	if avail < 30 {
-		avail = 30
-	}
-	typ = widgets.Clamp(avail/8, 7, 11)
-	vis = widgets.Clamp(avail/10, 7, 10)
-	versions = widgets.Clamp(avail/12, 4, 8)
-	updated = widgets.Clamp(avail/8, 8, 12)
-	used := typ + vis + versions + updated
-	name = avail - used
-	if name < 8 {
-		name = 8
-	}
-	return
+// packagesTable defines the column layout for the packages list.
+var packagesTable = table.Table{
+	Cols: []table.Col{
+		{Title: "TYPE", Min: 7, Max: 11, Ideal: 11},
+		{Title: "NAME", Min: 8, Max: 80, Ideal: 56, Elastic: true},
+		{Title: "VISIBILITY", Min: 7, Max: 10, Ideal: 9},
+		{Title: "VERS", Min: 4, Max: 8, Ideal: 8},
+		{Title: "UPDATED", Min: 8, Max: 12, Ideal: 12},
+	},
 }
 
 func (m *Model) renderTable(rows []domain.Package) string {
-	typ, name, vis, versions, updated := m.columnWidths()
+	widths := packagesTable.Layout(m.width)
+	typ, name, vis, versions, updated := widths[0], widths[1], widths[2], widths[3], widths[4]
 	var b strings.Builder
-	header := widgets.JoinCells(
-		widgets.PadRight(widgets.TruncRune("TYPE", typ), typ),
-		widgets.PadRight(widgets.TruncRune("NAME", name), name),
-		widgets.PadRight(widgets.TruncRune("VISIBILITY", vis), vis),
-		widgets.PadRight(widgets.TruncRune("VERS", versions), versions),
-		widgets.PadRight(widgets.TruncRune("UPDATED", updated), updated),
-	)
+	header := packagesTable.Header(widths, func(s string) string { return s })
 	b.WriteString(m.theme.SectionLabel(m.truncate(header)))
 	b.WriteByte('\n')
 
