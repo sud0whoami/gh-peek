@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
 	lipgloss "charm.land/lipgloss/v2"
 
 	"github.com/sud0whoami/gh-peek/internal/domain"
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
+	"github.com/sud0whoami/gh-peek/internal/ui/widgets"
 )
 
 // View implements tea.Model.
@@ -47,7 +47,7 @@ func (m *Model) statusIndicatorText() string {
 		return "⏼ off"
 	case !m.lastRefreshed.IsZero():
 		d := m.params.Now().Sub(m.lastRefreshed)
-		return "✓ " + humanizeAgo(d)
+		return "✓ " + widgets.HumanizeAgo(d)
 	default:
 		return "✓"
 	}
@@ -71,7 +71,7 @@ func (m *Model) renderSubheader() string {
 		parts = append(parts, fmt.Sprintf("%d versions", m.pkg.VersionCount))
 	}
 	if !m.pkg.UpdatedAt.IsZero() {
-		parts = append(parts, "updated "+humanizeAgo(m.params.Now().Sub(m.pkg.UpdatedAt)))
+		parts = append(parts, "updated "+widgets.HumanizeAgo(m.params.Now().Sub(m.pkg.UpdatedAt)))
 	}
 	return m.theme.Muted(m.truncate(strings.Join(parts, " · ")))
 }
@@ -97,7 +97,7 @@ func (m *Model) renderVersions() string {
 	if width < 30 {
 		width = 30
 	}
-	createdW := clampInt(width/8, 8, 12)
+	createdW := widgets.Clamp(width/8, 8, 12)
 	var nameW, tagsW int
 	if isContainer {
 		// Container/docker version "names" are sha256 digests; we
@@ -115,12 +115,12 @@ func (m *Model) renderVersions() string {
 	}
 
 	var b strings.Builder
-	header := truncRune("NAME", nameW)
-	header = padRight(header, nameW)
+	header := widgets.TruncRune("NAME", nameW)
+	header = widgets.PadRight(header, nameW)
 	if isContainer {
-		header = header + " " + padRight(truncRune("TAGS", tagsW), tagsW)
+		header = header + " " + widgets.PadRight(widgets.TruncRune("TAGS", tagsW), tagsW)
 	}
-	header = header + " " + padRight(truncRune("CREATED", createdW), createdW)
+	header = header + " " + widgets.PadRight(widgets.TruncRune("CREATED", createdW), createdW)
 	b.WriteString(m.theme.SectionLabel(m.truncate(header)))
 	b.WriteByte('\n')
 
@@ -128,18 +128,18 @@ func (m *Model) renderVersions() string {
 	for i, v := range m.versions {
 		created := "—"
 		if !v.CreatedAt.IsZero() {
-			created = humanizeAgo(now.Sub(v.CreatedAt))
+			created = widgets.HumanizeAgo(now.Sub(v.CreatedAt))
 		}
 		name := v.Name
 		if isContainer {
 			name = shortenDigest(name)
 		}
-		row := padRight(truncRune(name, nameW), nameW)
+		row := widgets.PadRight(widgets.TruncRune(name, nameW), nameW)
 		if isContainer {
 			tags := strings.Join(v.Metadata.ContainerTags, ", ")
-			row = row + " " + padRight(truncRune(tags, tagsW), tagsW)
+			row = row + " " + widgets.PadRight(widgets.TruncRune(tags, tagsW), tagsW)
 		}
-		row = row + " " + padRight(truncRune(created, createdW), createdW)
+		row = row + " " + widgets.PadRight(widgets.TruncRune(created, createdW), createdW)
 		if i == m.cursor {
 			row = m.theme.SelectedRow(row, m.width)
 		}
@@ -201,7 +201,7 @@ func (m *Model) truncate(s string) string {
 	if lipgloss.Width(s) <= m.width {
 		return s
 	}
-	return truncRune(s, m.width)
+	return widgets.TruncRune(s, m.width)
 }
 
 func errorHint(err error) string {
@@ -226,62 +226,4 @@ func errorHint(err error) string {
 	default:
 		return err.Error()
 	}
-}
-
-func humanizeAgo(d time.Duration) string {
-	if d < 0 {
-		d = 0
-	}
-	switch {
-	case d < time.Minute:
-		return fmt.Sprintf("%ds ago", int(d.Seconds()))
-	case d < time.Hour:
-		return fmt.Sprintf("%dm ago", int(d.Minutes()))
-	case d < 24*time.Hour:
-		return fmt.Sprintf("%dh ago", int(d.Hours()))
-	default:
-		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
-	}
-}
-
-func truncRune(s string, n int) string {
-	if n <= 0 {
-		return ""
-	}
-	if lipgloss.Width(s) <= n {
-		return s
-	}
-	if n == 1 {
-		return "…"
-	}
-	var b strings.Builder
-	w := 0
-	for _, r := range s {
-		rw := lipgloss.Width(string(r))
-		if w+rw > n-1 {
-			break
-		}
-		b.WriteRune(r)
-		w += rw
-	}
-	b.WriteRune('…')
-	return b.String()
-}
-
-func padRight(s string, n int) string {
-	w := lipgloss.Width(s)
-	if w >= n {
-		return s
-	}
-	return s + strings.Repeat(" ", n-w)
-}
-
-func clampInt(want, lo, hi int) int {
-	if want < lo {
-		want = lo
-	}
-	if hi > 0 && want > hi {
-		want = hi
-	}
-	return want
 }

@@ -4,13 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	tea "charm.land/bubbletea/v2"
-	lipgloss "charm.land/lipgloss/v2"
 
 	"github.com/sud0whoami/gh-peek/internal/domain"
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
+	"github.com/sud0whoami/gh-peek/internal/ui/widgets"
 )
 
 // View implements tea.Model.
@@ -64,7 +63,7 @@ func (m *Model) statusIndicatorText() string {
 		return "⏼ off"
 	case !m.lastRefreshed.IsZero():
 		d := m.params.Now().Sub(m.lastRefreshed)
-		return "✓ " + humanizeAgo(d)
+		return "✓ " + widgets.HumanizeAgo(d)
 	default:
 		return "✓"
 	}
@@ -123,9 +122,9 @@ func (m *Model) columnWidths() (wf, title, branch, event, status, updated int) {
 	}
 	status = statusCol
 	rest := avail - status
-	event = clampInt(rest/8, 5, 8)
-	updated = clampInt(rest/8, 6, 10)
-	branch = clampInt(rest/4, 6, 18)
+	event = widgets.Clamp(rest/8, 5, 8)
+	updated = widgets.Clamp(rest/8, 6, 10)
+	branch = widgets.Clamp(rest/4, 6, 18)
 	used := event + updated + branch
 	rem := rest - used
 	if rem < 8 {
@@ -145,28 +144,28 @@ func (m *Model) columnWidths() (wf, title, branch, event, status, updated int) {
 func (m *Model) renderTable(rows []domain.WorkflowRun) string {
 	wf, title, branch, event, status, updated := m.columnWidths()
 	var b strings.Builder
-	header := joinRow(
-		padRight(truncRune("WORKFLOW", wf), wf),
-		padRight(truncRune("TITLE", title), title),
-		padRight(truncRune("BRANCH", branch), branch),
-		padRight(truncRune("EVENT", event), event),
-		padRight(truncRune("STATUS", status), status),
-		padRight(truncRune("UPDATED", updated), updated),
+	header := widgets.JoinCells(
+		widgets.PadRight(widgets.TruncRune("WORKFLOW", wf), wf),
+		widgets.PadRight(widgets.TruncRune("TITLE", title), title),
+		widgets.PadRight(widgets.TruncRune("BRANCH", branch), branch),
+		widgets.PadRight(widgets.TruncRune("EVENT", event), event),
+		widgets.PadRight(widgets.TruncRune("STATUS", status), status),
+		widgets.PadRight(widgets.TruncRune("UPDATED", updated), updated),
 	)
 	b.WriteString(m.theme.SectionLabel(m.truncate(header)))
 	b.WriteByte('\n')
 
 	for i, r := range rows {
 		s := githubapi.MapAPIStatus(r.Status, r.Conclusion)
-		statusCell := padToVisible(m.theme.Badge(s), status)
-		updatedCell := humanizeAgo(m.params.Now().Sub(r.UpdatedAt))
-		row := joinRow(
-			padRight(truncRune(r.WorkflowName, wf), wf),
-			padRight(truncRune(r.DisplayTitle, title), title),
-			padRight(truncRune(r.HeadBranch, branch), branch),
-			padRight(truncRune(r.Event, event), event),
+		statusCell := widgets.PadToVisible(m.theme.Badge(s), status)
+		updatedCell := widgets.HumanizeAgo(m.params.Now().Sub(r.UpdatedAt))
+		row := widgets.JoinCells(
+			widgets.PadRight(widgets.TruncRune(r.WorkflowName, wf), wf),
+			widgets.PadRight(widgets.TruncRune(r.DisplayTitle, title), title),
+			widgets.PadRight(widgets.TruncRune(r.HeadBranch, branch), branch),
+			widgets.PadRight(widgets.TruncRune(r.Event, event), event),
 			statusCell,
-			padRight(truncRune(updatedCell, updated), updated),
+			widgets.PadRight(widgets.TruncRune(updatedCell, updated), updated),
 		)
 		if i == m.cursor {
 			row = m.theme.SelectedRow(row, m.width)
@@ -217,10 +216,7 @@ func (m *Model) truncate(s string) string {
 	if m.width <= 0 {
 		return s
 	}
-	if lipgloss.Width(s) <= m.width {
-		return s
-	}
-	return truncRune(s, m.width)
+	return widgets.TruncRune(s, m.width)
 }
 
 // errorHint maps known sentinels to user-facing hints.
@@ -244,80 +240,4 @@ func errorHint(err error) string {
 	default:
 		return err.Error()
 	}
-}
-
-// humanizeAgo renders a duration as e.g. "5s ago" / "3m ago" / "2h ago".
-func humanizeAgo(d time.Duration) string {
-	if d < 0 {
-		d = 0
-	}
-	switch {
-	case d < time.Minute:
-		return fmt.Sprintf("%ds ago", int(d.Seconds()))
-	case d < time.Hour:
-		return fmt.Sprintf("%dm ago", int(d.Minutes()))
-	case d < 24*time.Hour:
-		return fmt.Sprintf("%dh ago", int(d.Hours()))
-	default:
-		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
-	}
-}
-
-// truncRune truncates s to n display columns, appending "…" if cut.
-func truncRune(s string, n int) string {
-	if n <= 0 {
-		return ""
-	}
-	if lipgloss.Width(s) <= n {
-		return s
-	}
-	if n == 1 {
-		return "…"
-	}
-	// Walk the runes accumulating width; cut at n-1 then add ellipsis.
-	var b strings.Builder
-	w := 0
-	for _, r := range s {
-		rw := lipgloss.Width(string(r))
-		if w+rw > n-1 {
-			break
-		}
-		b.WriteRune(r)
-		w += rw
-	}
-	b.WriteRune('…')
-	return b.String()
-}
-
-// padRight pads s with spaces on the right to n display columns.
-func padRight(s string, n int) string {
-	w := lipgloss.Width(s)
-	if w >= n {
-		return s
-	}
-	return s + strings.Repeat(" ", n-w)
-}
-
-// padToVisible pads a possibly-styled string to n visible columns.
-func padToVisible(s string, n int) string {
-	w := lipgloss.Width(s)
-	if w >= n {
-		return s
-	}
-	return s + strings.Repeat(" ", n-w)
-}
-
-// joinRow joins cells with a single space.
-func joinRow(cells ...string) string {
-	return strings.Join(cells, " ")
-}
-
-func clampInt(want, lo, hi int) int {
-	if want < lo {
-		want = lo
-	}
-	if hi > 0 && want > hi {
-		want = hi
-	}
-	return want
 }

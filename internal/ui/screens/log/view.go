@@ -15,6 +15,7 @@ import (
 	"github.com/sud0whoami/gh-peek/internal/githubapi"
 	"github.com/sud0whoami/gh-peek/internal/logs"
 	"github.com/sud0whoami/gh-peek/internal/ui/styles"
+	"github.com/sud0whoami/gh-peek/internal/ui/widgets"
 )
 
 // View implements tea.Model.
@@ -56,7 +57,7 @@ func (m *Model) statusIndicatorText() string {
 		return "⏼ off"
 	case !m.lastRefreshed.IsZero():
 		d := m.params.Now().Sub(m.lastRefreshed)
-		return "✓ " + humanizeAgo(d)
+		return "✓ " + widgets.HumanizeAgo(d)
 	default:
 		return "✓"
 	}
@@ -137,7 +138,7 @@ func (m *Model) renderBodyRaw() string {
 		if m.wrap {
 			subs = strings.Split(lipgloss.Wrap(raw, contentW, ""), "\n")
 		} else {
-			subs = []string{truncRune(raw, contentW)}
+			subs = []string{widgets.TruncRune(raw, contentW)}
 		}
 		for j, sub := range subs {
 			if len(rows) >= height {
@@ -152,7 +153,7 @@ func (m *Model) renderBodyRaw() string {
 			row := m.theme.Muted(num) + " " + sub
 			// Highlight current match line.
 			if m.matchCursor >= 0 && i == m.matches[m.matchCursor] {
-				row = m.theme.Selected(padRight(num+" "+sub, m.width))
+				row = m.theme.Selected(widgets.PadRight(num+" "+sub, m.width))
 			}
 			rows = append(rows, row)
 		}
@@ -249,7 +250,7 @@ func (m *Model) renderOutlineHeader(r row, cursor bool) string {
 	var line string
 	if right == "" || lw+rw+2 > w {
 		// No room for right side; just truncate left.
-		line = truncRune(left, w)
+		line = widgets.TruncRune(left, w)
 	} else {
 		gap := w - lw - rw
 		if gap < 1 {
@@ -259,7 +260,7 @@ func (m *Model) renderOutlineHeader(r row, cursor bool) string {
 	}
 
 	if cursor {
-		return m.theme.Selected(padRight(line, w))
+		return m.theme.Selected(widgets.PadRight(line, w))
 	}
 	return line
 }
@@ -302,9 +303,9 @@ func (m *Model) renderOutlineLine(r row, gutter int, bufLines []string, highligh
 	}
 
 	if !m.wrap {
-		assembled := buildFirstLine(truncRune(content, contentW))
+		assembled := buildFirstLine(widgets.TruncRune(content, contentW))
 		if highlight {
-			return m.theme.Selected(padRight(assembled, m.width))
+			return m.theme.Selected(widgets.PadRight(assembled, m.width))
 		}
 		return assembled
 	}
@@ -328,7 +329,7 @@ func (m *Model) renderOutlineLine(r row, gutter int, bufLines []string, highligh
 	if highlight {
 		// Only highlight the first sub-line to avoid over-brightening.
 		lines := strings.SplitN(assembled, "\n", 2)
-		lines[0] = m.theme.Selected(padRight(lines[0], m.width))
+		lines[0] = m.theme.Selected(widgets.PadRight(lines[0], m.width))
 		return strings.Join(lines, "\n")
 	}
 	return assembled
@@ -370,7 +371,7 @@ func (m *Model) truncate(s string) string {
 	if lipgloss.Width(s) <= m.width {
 		return s
 	}
-	return truncRune(s, m.width)
+	return widgets.TruncRune(s, m.width)
 }
 
 // ---------------------------------------------------------------------------
@@ -512,21 +513,6 @@ func errorHint(err error) string {
 }
 
 // humanizeAgo renders a duration as e.g. "5s ago" / "3m ago".
-func humanizeAgo(d time.Duration) string {
-	if d < 0 {
-		d = 0
-	}
-	switch {
-	case d < time.Minute:
-		return fmt.Sprintf("%ds ago", int(d.Seconds()))
-	case d < time.Hour:
-		return fmt.Sprintf("%dm ago", int(d.Minutes()))
-	case d < 24*time.Hour:
-		return fmt.Sprintf("%dh ago", int(d.Hours()))
-	default:
-		return fmt.Sprintf("%dd ago", int(d.Hours()/24))
-	}
-}
 
 // humanizeBytes renders n as "X B", "X KiB", "X MiB", etc.
 func humanizeBytes(n int) string {
@@ -545,38 +531,8 @@ func humanizeBytes(n int) string {
 }
 
 // truncRune truncates s to n display columns, appending "…" if cut.
-func truncRune(s string, n int) string {
-	if n <= 0 {
-		return ""
-	}
-	if lipgloss.Width(s) <= n {
-		return s
-	}
-	if n == 1 {
-		return "…"
-	}
-	var b strings.Builder
-	w := 0
-	for _, r := range s {
-		rw := lipgloss.Width(string(r))
-		if w+rw > n-1 {
-			break
-		}
-		b.WriteRune(r)
-		w += rw
-	}
-	b.WriteRune('…')
-	return b.String()
-}
 
 // padRight pads s with spaces on the right to n display columns.
-func padRight(s string, n int) string {
-	w := lipgloss.Width(s)
-	if w >= n {
-		return s
-	}
-	return s + strings.Repeat(" ", n-w)
-}
 
 // padLeft pads s with spaces on the left to n display columns.
 func padLeft(s string, n int) string {
