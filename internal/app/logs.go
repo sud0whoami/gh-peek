@@ -45,40 +45,9 @@ func runLogsWithDeps(args []string, stdout, stderr io.Writer, deps logsDeps) int
 	fs := flag.NewFlagSet("gh-peek logs", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.Usage = func() {
-		fmt.Fprintf(stderr, `gh-peek logs — download job logs to stdout (non-interactive)
-
-USAGE
-  gh peek logs [flags]
-
-DESCRIPTION
-  Resolves the current repo context (same logic as the TUI), picks the most
-  recent run, and writes logs for failed jobs to stdout. Use --all to include
-  passing jobs.
-
-  Auto-pick order for the run: PR head SHA → current branch → repo-wide.
-
-OUTPUT MODES
-  (default)  ANSI-stripped text, one job per section
-  --errors   Failure snippets only — ideal for pasting into an AI agent
-  --json     Structured JSON (outline tree + flat error list)
-
-FLAGS
-`)
+		fmt.Fprintf(stderr, "gh-peek logs \u2014 download job logs to stdout (non-interactive)\n\nUSAGE\n  gh peek logs [flags]\n\nDESCRIPTION\n  Resolves the current repo context (same logic as the TUI), picks the most\n  recent run, and writes logs for failed jobs to stdout. Use --all to include\n  passing jobs.\n\n  Auto-pick order for the run: PR head SHA \u2192 current branch \u2192 repo-wide.\n\nOUTPUT MODES\n  (default)  ANSI-stripped text, one job per section\n  --errors   Failure snippets only \u2014 ideal for pasting into an AI agent\n  --json     Structured JSON (outline tree + flat error list)\n\nFLAGS\n") //nolint:errcheck
 		fs.PrintDefaults()
-		fmt.Fprintf(stderr, `
-EXIT CODES
-  0  success
-  1  bootstrap or API failure; no jobs matched the filter
-  2  flag error or mutually exclusive flags
-
-EXAMPLES
-  gh peek logs                        # failed jobs on current branch/PR
-  gh peek logs --all                  # all jobs
-  gh peek logs --errors               # failure snippets (best for AI agents)
-  gh peek logs --errors --copy        # copy failure snippets to clipboard
-  gh peek logs --json | jq .jobs[0].errors
-  gh peek logs --run 12345 --job build
-`)
+		fmt.Fprintf(stderr, "\nEXIT CODES\n  0  success\n  1  bootstrap or API failure; no jobs matched the filter\n  2  flag error or mutually exclusive flags\n\nEXAMPLES\n  gh peek logs                        # failed jobs on current branch/PR\n  gh peek logs --all                  # all jobs\n  gh peek logs --errors               # failure snippets (best for AI agents)\n  gh peek logs --errors --copy        # copy failure snippets to clipboard\n  gh peek logs --json | jq .jobs[0].errors\n  gh peek logs --run 12345 --job build\n") //nolint:errcheck
 	}
 
 	runID := fs.Int64("run", 0, "specific run ID; 0 = auto-pick")

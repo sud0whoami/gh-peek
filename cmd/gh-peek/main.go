@@ -36,7 +36,7 @@ func run(args []string, stdout, stderr io.Writer, isTTY bool) int {
 	fs := flag.NewFlagSet("gh-peek", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	fs.Usage = func() {
-		fmt.Fprintf(stderr, `gh-peek — browse GitHub Actions from your terminal
+		_, _ = fmt.Fprintf(stderr, `gh-peek — browse GitHub Actions, Releases, and Packages from your terminal
 
 USAGE
   gh peek [--web]          open the interactive TUI (requires a TTY)
@@ -44,20 +44,21 @@ USAGE
   gh peek --help           show this help
 
 TUI
-  Starts in the most relevant view for the current git context:
+  Opens the most relevant view for the current git context:
     default branch  → all-runs list
-    PR branch       → PR run list
-    other branch    → branch run list
+    PR branch       → PR runs list
+    other branch    → branch runs list
 
   Key bindings (selected):
     enter  open run detail     o  open in browser
-    b      cycle branch/PR/all P  packages
+    /      search / filter     a  toggle active-only
+    b      cycle branch/PR/all r  refresh
+    L      GitHub Releases     P  GitHub Packages
     R      toggle auto-refresh ?  full help
 
 FLAGS
-`)
-		fs.PrintDefaults()
-		fmt.Fprintf(stderr, `
+  -web  open the repository's GitHub Actions page in a browser and exit
+
 SUBCOMMANDS
   logs  Download and print job logs. Run 'gh peek logs --help' for details.
 `)
