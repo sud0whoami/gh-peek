@@ -125,7 +125,11 @@ func (c *Client) ListPackages(ctx context.Context, repo domain.RepoRef, f ListPa
 			out.NotModified = false
 		}
 		for _, p := range r.pkgs {
-			if p.Repository != nil && p.Repository.Name != repo.Name {
+			// Drop packages without a repository link, and any whose
+			// repository name does not match. Org-level packages with no
+			// repo binding (e.g. some container packages) would otherwise
+			// leak into every repo in the org.
+			if p.Repository == nil || p.Repository.Name != repo.Name {
 				continue
 			}
 			out.Packages = append(out.Packages, p)

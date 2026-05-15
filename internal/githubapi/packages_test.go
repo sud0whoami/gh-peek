@@ -188,6 +188,62 @@ func TestListPackages_OrgToUserFallback(t *testing.T) {
 	}
 }
 
+func TestListPackages_DropsPackagesWithoutRepository(t *testing.T) {
+	t.Parallel()
+	// One container package binds to "demo"; a second has repository:null
+	// (e.g. an org-level container with no repo link). The null one must
+	// not leak into any specific repo's view.
+	body := `[
+      {
+        "id": 2001,
+        "name": "demo-pkg-container",
+        "package_type": "container",
+        "visibility": "private",
+        "html_url": "https://github.com/orgs/octo/packages/container/package/demo-pkg-container",
+        "created_at": "2025-01-01T10:00:00Z",
+        "updated_at": "2025-02-01T10:00:00Z",
+        "version_count": 1,
+        "owner": {"login": "octo", "type": "Organization"},
+        "repository": {"name": "demo", "full_name": "octo/demo"}
+      },
+      {
+        "id": 2002,
+        "name": "orphan-container",
+        "package_type": "container",
+        "visibility": "private",
+        "html_url": "https://github.com/orgs/octo/packages/container/package/orphan-container",
+        "created_at": "2025-01-01T10:00:00Z",
+        "updated_at": "2025-02-01T10:00:00Z",
+        "version_count": 1,
+        "owner": {"login": "octo", "type": "Organization"},
+        "repository": null
+      }
+    ]`
+	srv, _ := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		pt := domain.PackageType(r.URL.Query().Get("package_type"))
+		w.Header().Set("Content-Type", "application/json")
+		if pt == domain.PackageTypeContainer {
+			_, _ = io.WriteString(w, body)
+			return
+		}
+		_, _ = io.WriteString(w, `[]`)
+	}))
+	c := New(WithBaseURL(srv.URL), WithTokenFunc(emptyTokenFunc))
+
+	res, err := c.ListPackages(context.Background(),
+		domain.RepoRef{Host: "github.com", Owner: "octo", Name: "demo", OwnerType: "Organization"},
+		ListPackagesFilter{PackageTypes: []domain.PackageType{domain.PackageTypeContainer}})
+	if err != nil {
+		t.Fatalf("ListPackages: %v", err)
+	}
+	if len(res.Packages) != 1 {
+		t.Fatalf("packages = %d, want 1 (orphan must be dropped); got: %+v", len(res.Packages), res.Packages)
+	}
+	if res.Packages[0].Name != "demo-pkg-container" {
+		t.Errorf("kept the wrong package: %+v", res.Packages[0])
+	}
+}
+
 func TestListPackages_MissingScope(t *testing.T) {
 	t.Parallel()
 	srv, _ := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
