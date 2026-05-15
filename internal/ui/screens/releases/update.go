@@ -107,7 +107,7 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch key {
 	case "q", "ctrl+c":
 		return m, tea.Quit
-	case "esc", "b", "L":
+	case "esc", "b", "L", "W":
 		return m, func() tea.Msg { return BackToRunsMsg{} }
 	case "P":
 		return m, func() tea.Msg { return OpenPackagesMsg{} }

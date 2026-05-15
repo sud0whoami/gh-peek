@@ -272,6 +272,30 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case releases.OpenPackagesMsg:
 		return m.openPackagesList()
 
+	case packages.OpenReleasesMsg:
+		if m.params == nil {
+			return m, nil
+		}
+		rc := m.releasesClient()
+		if rc == nil {
+			return m, nil
+		}
+		if m.releasesScreen == nil {
+			m.releasesScreen = releases.New(releases.Params{
+				Repo:         m.params.Startup.Repo.Repo,
+				Client:       rc,
+				Now:          m.params.Now,
+				Width:        m.innerWidth(),
+				Height:       m.height,
+				AutoRefresh:  m.params.AutoRefresh,
+				TickInterval: m.params.TickInterval,
+			})
+			m.active = activeReleasesList
+			return m, m.releasesScreen.Init()
+		}
+		m.active = activeReleasesList
+		return m, nil
+
 	case packages.OpenPackageMsg:
 		if m.params == nil {
 			return m, nil
@@ -406,11 +430,15 @@ func (m *Model) innerWidth() int {
 }
 
 // frameContent wraps s in a rounded border and fills the surrounding
-// terminal area with the Dracula background colour.
+// terminal area (and the area inside the border) with the Dracula
+// background colour.
 func (m *Model) frameContent(s string) string {
+	bg := lipgloss.Color(draculaBg)
 	framed := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color(draculaBorder)).
+		BorderBackground(bg).
+		Background(bg).
 		Width(m.frame.Content - frameBorderSides).
 		Render(s)
 	if m.height <= 0 {
@@ -421,7 +449,7 @@ func (m *Model) frameContent(s string) string {
 		lipgloss.Center, lipgloss.Top,
 		framed,
 		lipgloss.WithWhitespaceStyle(
-			lipgloss.NewStyle().Background(lipgloss.Color(draculaBg)),
+			lipgloss.NewStyle().Background(bg),
 		),
 	)
 }
@@ -438,7 +466,7 @@ func (m *Model) View() tea.View {
 				lipgloss.WithWhitespaceStyle(bgStyle),
 			)
 		}
-		return tea.NewView(msg)
+		return altScreenView(msg)
 	}
 	var content string
 	switch m.active {
@@ -474,7 +502,17 @@ func (m *Model) View() tea.View {
 	if content == "" {
 		content = "gh-peek — initializing…"
 	}
-	return tea.NewView(m.frameContent(content))
+	return altScreenView(m.frameContent(content))
+}
+
+// altScreenView wraps content in a tea.View flagged for the alternate
+// screen buffer. Bubble Tea swaps to the alt screen on first render and
+// restores the user's terminal contents on exit, so we don't leave
+// stale TUI output in the scrollback.
+func altScreenView(content string) tea.View {
+	v := tea.NewView(content)
+	v.AltScreen = true
+	return v
 }
 
 // releasesClient returns the configured ReleasesClient, falling back to

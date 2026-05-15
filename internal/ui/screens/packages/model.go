@@ -108,5 +108,8 @@ type OpenInBrowserMsg struct {
 	URL string
 }
 
+// OpenReleasesMsg asks the parent to switch to the releases list screen.
+type OpenReleasesMsg struct{}
+
 // BackToRunsMsg asks the parent to return to the runs screen.
 type BackToRunsMsg struct{}

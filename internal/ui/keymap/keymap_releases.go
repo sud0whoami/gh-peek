@@ -54,8 +54,8 @@ func DefaultReleases() Releases {
 			key.WithHelp("P", "packages"),
 		),
 		Back: key.NewBinding(
-			key.WithKeys("esc", "b", "L"),
-			key.WithHelp("esc/b/L", "back to runs"),
+			key.WithKeys("esc", "b", "L", "W"),
+			key.WithHelp("esc/b/L/W", "back to runs"),
 		),
 		Help: key.NewBinding(
 			key.WithKeys("?"),

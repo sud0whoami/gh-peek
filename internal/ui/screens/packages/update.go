@@ -107,8 +107,10 @@ func (m *Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch key {
 	case "q", "ctrl+c":
 		return m, tea.Quit
-	case "esc", "b", "P":
+	case "esc", "b", "P", "W":
 		return m, func() tea.Msg { return BackToRunsMsg{} }
+	case "L":
+		return m, func() tea.Msg { return OpenReleasesMsg{} }
 	case "up", "k":
 		if m.cursor > 0 {
 			m.cursor--
