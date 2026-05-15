@@ -44,6 +44,42 @@ func defaultLogsDeps() logsDeps {
 func runLogsWithDeps(args []string, stdout, stderr io.Writer, deps logsDeps) int {
 	fs := flag.NewFlagSet("gh-peek logs", flag.ContinueOnError)
 	fs.SetOutput(stderr)
+	fs.Usage = func() {
+		fmt.Fprintf(stderr, `gh-peek logs — download job logs to stdout (non-interactive)
+
+USAGE
+  gh peek logs [flags]
+
+DESCRIPTION
+  Resolves the current repo context (same logic as the TUI), picks the most
+  recent run, and writes logs for failed jobs to stdout. Use --all to include
+  passing jobs.
+
+  Auto-pick order for the run: PR head SHA → current branch → repo-wide.
+
+OUTPUT MODES
+  (default)  ANSI-stripped text, one job per section
+  --errors   Failure snippets only — ideal for pasting into an AI agent
+  --json     Structured JSON (outline tree + flat error list)
+
+FLAGS
+`)
+		fs.PrintDefaults()
+		fmt.Fprintf(stderr, `
+EXIT CODES
+  0  success
+  1  bootstrap or API failure; no jobs matched the filter
+  2  flag error or mutually exclusive flags
+
+EXAMPLES
+  gh peek logs                        # failed jobs on current branch/PR
+  gh peek logs --all                  # all jobs
+  gh peek logs --errors               # failure snippets (best for AI agents)
+  gh peek logs --errors --copy        # copy failure snippets to clipboard
+  gh peek logs --json | jq .jobs[0].errors
+  gh peek logs --run 12345 --job build
+`)
+	}
 
 	runID := fs.Int64("run", 0, "specific run ID; 0 = auto-pick")
 	job := fs.String("job", "", "numeric → exact job ID; otherwise substring match on job name")
