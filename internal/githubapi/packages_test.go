@@ -244,6 +244,61 @@ func TestListPackages_DropsPackagesWithoutRepository(t *testing.T) {
 	}
 }
 
+// TestListPackages_FollowsPagination guards against a regression where
+// the listing only fetched page 1 and silently dropped repo-matching
+// packages that happened to live on later pages.
+func TestListPackages_FollowsPagination(t *testing.T) {
+	t.Parallel()
+	// Page 1: two packages, one belongs to "demo".
+	// Page 2: two packages, one belongs to "demo" — this is the one
+	//         that used to disappear.
+	page1 := `[
+      {"id":1,"name":"p1","package_type":"container","visibility":"private","html_url":"","created_at":"2025-01-01T00:00:00Z","updated_at":"2025-01-01T00:00:00Z","version_count":1,"owner":{"login":"octo","type":"Organization"},"repository":{"name":"demo","full_name":"octo/demo"}},
+      {"id":2,"name":"p2","package_type":"container","visibility":"private","html_url":"","created_at":"2025-01-01T00:00:00Z","updated_at":"2025-01-01T00:00:00Z","version_count":1,"owner":{"login":"octo","type":"Organization"},"repository":{"name":"other","full_name":"octo/other"}}
+    ]`
+	page2 := `[
+      {"id":3,"name":"p3","package_type":"container","visibility":"private","html_url":"","created_at":"2025-01-01T00:00:00Z","updated_at":"2025-01-01T00:00:00Z","version_count":1,"owner":{"login":"octo","type":"Organization"},"repository":{"name":"demo","full_name":"octo/demo"}},
+      {"id":4,"name":"p4","package_type":"container","visibility":"private","html_url":"","created_at":"2025-01-01T00:00:00Z","updated_at":"2025-01-01T00:00:00Z","version_count":1,"owner":{"login":"octo","type":"Organization"},"repository":{"name":"other","full_name":"octo/other"}}
+    ]`
+	srv, _ := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if domain.PackageType(r.URL.Query().Get("package_type")) != domain.PackageTypeContainer {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `[]`)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		page := r.URL.Query().Get("page")
+		switch page {
+		case "", "1":
+			// Advertise a next page via Link header.
+			w.Header().Set("Link", `<`+r.URL.Path+`?package_type=container&page=2>; rel="next"`)
+			_, _ = io.WriteString(w, page1)
+		case "2":
+			_, _ = io.WriteString(w, page2)
+		default:
+			_, _ = io.WriteString(w, `[]`)
+		}
+	}))
+	c := New(WithBaseURL(srv.URL), WithTokenFunc(emptyTokenFunc))
+
+	res, err := c.ListPackages(context.Background(),
+		domain.RepoRef{Host: "github.com", Owner: "octo", Name: "demo", OwnerType: "Organization"},
+		ListPackagesFilter{PackageTypes: []domain.PackageType{domain.PackageTypeContainer}})
+	if err != nil {
+		t.Fatalf("ListPackages: %v", err)
+	}
+	if len(res.Packages) != 2 {
+		t.Fatalf("packages = %d, want 2 (p1 + p3 across two pages); got: %+v", len(res.Packages), res.Packages)
+	}
+	got := map[string]bool{}
+	for _, p := range res.Packages {
+		got[p.Name] = true
+	}
+	if !got["p1"] || !got["p3"] {
+		t.Errorf("missing expected packages; got %v", got)
+	}
+}
+
 func TestListPackages_MissingScope(t *testing.T) {
 	t.Parallel()
 	srv, _ := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

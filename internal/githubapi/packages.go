@@ -143,18 +143,43 @@ func (c *Client) ListPackages(ctx context.Context, repo domain.RepoRef, f ListPa
 	return out, nil
 }
 
-// listPackagesForType issues a single typed listing, with org→user
+// listPackagesForType walks all pages of a typed listing, with org→user
 // fallback when OwnerType is unknown.
+//
+// The first page's ETag is returned (GitHub's ETag is per-page); a 304
+// on page 1 short-circuits with notModified=true and skips pagination.
 func (c *Client) listPackagesForType(ctx context.Context, repo domain.RepoRef, pt domain.PackageType, f ListPackagesFilter) ([]domain.Package, string, bool, int, error) {
-	pkgs, etag, nm, next, err := c.fetchPackagesPage(ctx, repo, ownerSegment(repo, false), pt, f)
-	if err == nil {
-		return pkgs, etag, nm, next, nil
+	segment := ownerSegment(repo, false)
+	pkgs, etag, nm, next, err := c.fetchPackagesPage(ctx, repo, segment, pt, f)
+	if err != nil {
+		// Unknown owner type: try /users on 404 from /orgs.
+		if segment == "orgs" && repo.OwnerType == "" && errors.Is(err, ErrNotFound) {
+			segment = "users"
+			pkgs, etag, nm, next, err = c.fetchPackagesPage(ctx, repo, segment, pt, f)
+		}
+		if err != nil {
+			return nil, "", false, 0, err
+		}
 	}
-	// Unknown owner type: try /users on 404 from /orgs.
-	if repo.OwnerType == "" && errors.Is(err, ErrNotFound) {
-		return c.fetchPackagesPage(ctx, repo, "users", pt, f)
+	if nm {
+		return pkgs, etag, true, next, nil
 	}
-	return nil, "", false, 0, err
+
+	// Walk subsequent pages until the API stops returning a "next" link.
+	// ETags are per-page, so we don't pass IfNoneMatch on follow-ups.
+	for next > 0 {
+		pageFilter := f
+		pageFilter.Page = next
+		pageFilter.IfNoneMatch = nil
+
+		more, _, _, nextNext, perr := c.fetchPackagesPage(ctx, repo, segment, pt, pageFilter)
+		if perr != nil {
+			return nil, "", false, 0, perr
+		}
+		pkgs = append(pkgs, more...)
+		next = nextNext
+	}
+	return pkgs, etag, false, 0, nil
 }
 
 // ownerSegment returns "orgs" or "users" for the listing path.
@@ -177,9 +202,11 @@ func (c *Client) fetchPackagesPage(ctx context.Context, repo domain.RepoRef, seg
 	if f.Page > 0 {
 		q.Set("page", strconv.Itoa(f.Page))
 	}
-	if f.PerPage > 0 {
-		q.Set("per_page", strconv.Itoa(f.PerPage))
+	perPage := f.PerPage
+	if perPage == 0 {
+		perPage = 100 // GitHub API max; minimises pagination round trips.
 	}
+	q.Set("per_page", strconv.Itoa(perPage))
 	endpoint := fmt.Sprintf("%s/%s/%s/packages?%s", c.baseFor(repo), segment, repo.Owner, q.Encode())
 
 	headers := http.Header{}
