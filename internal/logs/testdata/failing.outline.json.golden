@@ -1,0 +1,114 @@
+[
+  {
+    "kind": "step",
+    "title": "Set up job",
+    "severity": "none",
+    "start_line": 1,
+    "end_line": 2,
+    "start_time": "<TS>",
+    "end_time": "<TS>",
+    "children": [
+      {
+        "kind": "line",
+        "severity": "none",
+        "text": "<TS> Current runner version: '2.317.0'",
+        "line_number": 2
+      }
+    ]
+  },
+  {
+    "kind": "step",
+    "title": "Run actions/checkout@v4",
+    "severity": "none",
+    "start_line": 4,
+    "end_line": 5,
+    "start_time": "<TS>",
+    "end_time": "<TS>",
+    "children": [
+      {
+        "kind": "line",
+        "severity": "none",
+        "text": "<TS> Syncing repository: example-org/example-repo",
+        "line_number": 5
+      }
+    ]
+  },
+  {
+    "kind": "step",
+    "title": "Run go build ./...",
+    "severity": "error",
+    "error_count": 1,
+    "warning_count": 1,
+    "start_line": 7,
+    "end_line": 12,
+    "start_time": "<TS>",
+    "end_time": "<TS>",
+    "children": [
+      {
+        "kind": "line",
+        "severity": "command",
+        "text": "<TS> ##[command]/usr/local/go/bin/go build ./...",
+        "line_number": 8
+      },
+      {
+        "kind": "line",
+        "severity": "warning",
+        "text": "<TS> ##[warning]deprecated: pkg/old is deprecated",
+        "line_number": 9
+      },
+      {
+        "kind": "line",
+        "severity": "none",
+        "text": "<TS> # example.com/app",
+        "line_number": 10
+      },
+      {
+        "kind": "line",
+        "severity": "none",
+        "text": "<TS> ./main.go:42:9: undefined: missingHelper",
+        "line_number": 11
+      },
+      {
+        "kind": "line",
+        "severity": "error",
+        "text": "<TS> ##[error]Process completed with exit code 2.",
+        "line_number": 12
+      }
+    ]
+  },
+  {
+    "kind": "step",
+    "title": "Post Run actions/checkout@v4",
+    "severity": "none",
+    "start_line": 14,
+    "end_line": 15,
+    "start_time": "<TS>",
+    "end_time": "<TS>",
+    "children": [
+      {
+        "kind": "line",
+        "severity": "none",
+        "text": "<TS> Cleaning up orphan processes",
+        "line_number": 15
+      }
+    ]
+  },
+  {
+    "kind": "step",
+    "title": "Complete job",
+    "severity": "error",
+    "error_count": 1,
+    "start_line": 17,
+    "end_line": 18,
+    "start_time": "<TS>",
+    "end_time": "<TS>",
+    "children": [
+      {
+        "kind": "line",
+        "severity": "error",
+        "text": "<TS> ##[error]Process completed with exit code 1.",
+        "line_number": 18
+      }
+    ]
+  }
+]

@@ -58,3 +58,16 @@ func TestRun_NoArgsNonTTYDelegatesToApp(t *testing.T) {
 		t.Fatalf("stderr = %q, want contains %q", stderr.String(), "interactive")
 	}
 }
+
+// TestRun_LogsHelpExitsTwo confirms that `gh peek logs --help` returns 2
+// and prints flag usage to stderr.
+func TestRun_LogsHelpExitsTwo(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	code := run([]string{"logs", "--help"}, &stdout, &stderr, false)
+	if code != 2 {
+		t.Fatalf("exit code = %d, want 2; stderr=%q", code, stderr.String())
+	}
+	if !strings.Contains(stderr.String(), "-run") && !strings.Contains(stderr.String(), "Usage") {
+		t.Fatalf("stderr = %q, want flag usage", stderr.String())
+	}
+}
